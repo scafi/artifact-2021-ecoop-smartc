@@ -156,6 +156,8 @@ fun makeTest(
 }
 
 makeTest(name="hello", file = "casestudy", time = 10000.0, vars = setOf(), taskSize = 2800, effects =  "casestudy")
+makeTest(name="channel", file = "channel", effects =  "channel")
+
 makeTest(name="g", file = "casestudy", time = 100.0, vars = setOf("random"), taskSize = 2800)
 
 defaultTasks("fatJar")

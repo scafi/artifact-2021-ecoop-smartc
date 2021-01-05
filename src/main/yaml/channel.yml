@@ -30,7 +30,7 @@ pools:
       type: Event
       actions:
         - type: RunScafiProgram
-          parameters: [it.unibo.casestudy.CaseStudy, 20]
+          parameters: [it.unibo.casestudy.Channel, 20]
     - program: send
 
 environment:
