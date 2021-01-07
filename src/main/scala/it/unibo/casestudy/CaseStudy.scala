@@ -26,15 +26,6 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
   val SENSOR_LOCAL_NUM_OF_DEVICES: String = "totalNumOfDevices"
 
   override def main(): Any = {
-    /*
-    val g = gradient(mid==0, nbrRangeEF)
-    node.put("g", g)
-    node.put("src", mid==0)
-    node.put("dest", mid==100)
-    val c = channel(mid==0, mid==100, 0.1 /* node.get[Double]("commRadius")*1.5 */)
-    node.put("c", c)
-    g
-     */
     lazy val totalNumOfDevices = sense[Int](SENSOR_LOCAL_NUM_OF_DEVICES)
     def isDetector: Boolean = mid == sense[ID](SENSOR_DETECTOR_ID)
     def isCollector: Boolean = mid == sense[ID](SENSOR_COLLECTOR_ID)
@@ -55,13 +46,9 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
     val meanWarning: Double = branch(inSurveillanceArea){
       val (sumWarning, numDevices) = Cwmpg[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
-        accumulate = (v, l) => ({
-          // println(s"$mid ($surveillanceArea) :: accumulating localWarning ${v._1} (local: ${l._1}")
-          v._1.foldSum(l._1)
-        }, v._2.foldSum(l._2)),
+        accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
       )
-      node.put("warningCalculation", s"${sumWarning} / ${numDevices} = ${sumWarning/numDevices} --- ${sumWarning} / ${totalNumOfDevices} = ${sumWarning/totalNumOfDevices}")
       node.put("sumWarningAtDetector", if(isDetector) sumWarning else 0)
       node.put("meanWarningOverallAtDetector", if(isDetector) sumWarning / totalNumOfDevices else 0)
       node.put("numDevicesAtDetector", if(isDetector) numDevices else 0)

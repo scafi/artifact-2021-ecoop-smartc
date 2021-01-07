@@ -3,23 +3,19 @@ the_plots_labels:
   - Time                 #0
   - 'localWarningInSystem min'
   - 'localWarningInSystem max'
-  - 'mean warning (truth)' # 'localWarningInSystem mean'
+  - 'mean warning overall (truth)' # 'localWarningInSystem mean'
   - 'localWarningInSystem sum'
   - 'meanWarningAtDetector' #5
   - 'dataAtCollector'
   - 'inSurveillanceArea'
   - 'numDevicesAtDetector'
-  - 'mean warning (truth)' #'meanlocalWarningInSurveillanceArea'
-  - 'sumlocalWarningInSurveillanceArea' #10
+  - 'mean warning in area (truth)' #'meanlocalWarningInSurveillanceArea'
+  - 'total warning (truth)' #'sumlocalWarningInSurveillanceArea' #10
   - 'meanSumWarningAtDetector'
-  - 'sumSumWarningAtDetector'
+  - 'collected warning (sum)' # 'sumSumWarningAtDetector'
   - 'collected mean warning' # 'meanWarningOverallAtDetector'
 the_plots_formats:
-  #- [0,10,12]
-  - [0,9,13]
-  - [0,7,8]
-  #- [0,11,12,13]
-#  - [0,2,3,4,5]
+  - [0,10,12]
 #y_labels: ['# of requests', '# of requests','','% of utilization of workers']
 #file_suffixes:
 #  - errors
