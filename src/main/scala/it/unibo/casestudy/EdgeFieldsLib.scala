@@ -71,7 +71,6 @@ trait EdgeFieldsLib {
 
   def nbrRangeEF: EdgeField[Double] = fsns(nbrRange, Double.PositiveInfinity)
 
-
   /**
    * - Every node receives by a single parent
    * - Every node transmits to all those neighbours that chose it as a parent
@@ -122,4 +121,38 @@ trait EdgeFieldsLib {
     })._2
   }
 
+  // NEW FUNCTIONS, POSSIBLY TO BE ADDED TO STDLIB?
+
+
+  def Cwmpg[T](sink: Boolean, radius: Double, value: T, Null: T,
+               accumulate: (EdgeField[T], T) => T,
+               extract: (EdgeField[T], EdgeField[Double], EdgeField[Double], EdgeField[T]) => EdgeField[T],
+               threshold: Double = 0.1
+              ): T = {
+    def weight(dist: Double, radius: Double): EdgeField[Double] = {
+      val distDiff: EdgeField[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist-v, 0))
+      val res = EdgeField.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
+      // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
+      res.map(v => if(v.isNaN) 0 else v)
+    }
+
+    def normalize(w: EdgeField[Double]): EdgeField[Double] = {
+      val sum: Double = w.foldSum
+      val res = w.map(_ / sum)
+      res.map(v => if(v.isNaN) 0 else v)
+    }
+
+    val dist = gradient(sink, nbrRangeEF)
+    exchange(value)(n => {
+      val loc: T = accumulate(n.withoutSelf, value) // or also: accumulate(selfSubs(n, 0.0),value)
+      val w: EdgeField[Double] = weight(dist, radius)
+      val normalized: EdgeField[Double] = normalize(w)
+      val res: EdgeField[T] = extract(loc, normalized, threshold, Null)
+      selfSubs(res, loc)
+    })
+  }
+
+  def keep[T](value: T, retentionTime: Long) = repByExchange((value,0L))(v => {
+    if(v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
+  })._1
 }

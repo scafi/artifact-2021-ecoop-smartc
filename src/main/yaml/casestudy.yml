@@ -9,6 +9,14 @@ variables:
     max: 55
     step: 15.0
     default: 50.0
+  detectorId: &detectorId
+    formula: 182
+  collectorId: &collectorId
+    formula: 180
+  surveillanceAreaSize: &surveillanceAreaSize
+    formula: 200.0
+  warningThreshold: &warningThreshold
+    formula: 12.5
               
 export:
   - time
@@ -38,6 +46,14 @@ environment:
   parameters: [cesena.pbf, false, false]
 #  -b=12.24045,44.13541,12.24851,44.13886
 
+layers:
+  - type: UniformLayer
+    molecule: constant
+    parameters: [ 25.0 ]
+  - type: BidimensionalGaussianLayer
+    molecule: localWarning
+    parameters: [ 0, 12.241355, 44.138149, 1.0, 0.0005, 0.0005] # baseline, centerX, centerY, norm, sigmaX, sigmaY
+
 network-model:
   type: ConnectWithinDistance
   parameters: [*commRadius]
@@ -55,3 +71,12 @@ displacements:
         concentration: Double.PositiveInfinity
       - molecule: commRadius
         concentration: *commRadius
+      - molecule: detectorId
+        concentration: *detectorId
+      - molecule: collectorId
+        concentration: *collectorId
+      - molecule: surveillanceAreaSize
+        concentration: *surveillanceAreaSize
+      - molecule: warningThreshold
+        concentration: *warningThreshold
+
