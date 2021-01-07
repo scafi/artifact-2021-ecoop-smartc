@@ -16,12 +16,40 @@ variables:
   surveillanceAreaSize: &surveillanceAreaSize
     formula: 200.0
   warningThreshold: &warningThreshold
-    formula: 12.5
+    formula: 4.5
+  warningRetentionTime: &warningRetentionTime
+    formula: 30
+  eventWindow: &eventWindow
+    language: Scala
+    formula: (30,150)
+  totalNumOfDevices: &totalNumOfDevices
+    formula: 200
               
 export:
   - time
-  - molecule: g
+  - molecule: localWarningInSystem
     aggregators: [min,max,mean,sum]
+    value-filter: onlyfinite
+  - molecule: meanWarningAtDetector
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: dataAtCollector
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: inSurveillanceArea
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: numDevicesAtDetector
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: localWarningInSurveillanceArea
+    aggregators: [mean,sum]
+    value-filter: onlyfinite
+  - molecule: sumWarningAtDetector
+    aggregators: [mean,sum]
+    value-filter: onlyfinite
+  - molecule: meanWarningOverallAtDetector
+    aggregators: [sum]
     value-filter: onlyfinite
 
 seeds:
@@ -32,13 +60,13 @@ incarnation: scafi
 
 pools:
   - pool: &program
-    - time-distribution:
-        type: ExponentialTime
-        parameters: [1]
+    - time-distribution: 1
+      #  type: ExponentialTime
+      #  parameters: [1]
       type: Event
       actions:
         - type: RunScafiProgram
-          parameters: [it.unibo.casestudy.CaseStudy, 20]
+          parameters: [it.unibo.casestudy.CaseStudy, 10]
     - program: send
 
 environment:
@@ -52,7 +80,7 @@ layers:
     parameters: [ 25.0 ]
   - type: BidimensionalGaussianLayer
     molecule: localWarning
-    parameters: [ 0, 12.241355, 44.138149, 1.0, 0.0005, 0.0005] # baseline, centerX, centerY, norm, sigmaX, sigmaY
+    parameters: [ 0, 12.241355, 44.138149, 50.0, 0.0005, 0.0005] # baseline, centerX, centerY, norm, sigmaX, sigmaY
 
 network-model:
   type: ConnectWithinDistance
@@ -61,7 +89,7 @@ network-model:
 displacements:
   - in:
       type: Rectangle #GeometricGradientRectangle
-      parameters: [200, 44.13621, 12.24045, 0.00345, 0.00706] #[250, 44.13621, 12.24045, 0.00345, 0.00706, 1.2, false, false]
+      parameters: [*totalNumOfDevices, 44.13621, 12.24045, 0.00345, 0.00706] #[250, 44.13621, 12.24045, 0.00345, 0.00706, 1.2, false, false]
     programs:
       - *program
     contents:
@@ -79,4 +107,26 @@ displacements:
         concentration: *surveillanceAreaSize
       - molecule: warningThreshold
         concentration: *warningThreshold
+      - molecule: eventWindow
+        concentration: *eventWindow
+      - molecule: warningRetentionTime
+        concentration: *warningRetentionTime
+      - molecule: localWarningInSystem
+        concentration: 0.0
+      - molecule: meanWarningAtDetector
+        concentration: 0.0
+      - molecule: dataAtCollector
+        concentration: 0.0
+      - molecule: inSurveillanceArea
+        concentration: 0.0
+      - molecule: numDevicesAtDetector
+        concentration: 0.0
+      - molecule: localWarningInSurveillanceArea
+        concentration: 0.0
+      - molecule: sumWarningAtDetector
+        concentration: 0.0
+      - molecule: totalNumOfDevices
+        concentration: *totalNumOfDevices
+      - molecule: meanWarningOverallAtDetector
+        concentration: 0.0
 

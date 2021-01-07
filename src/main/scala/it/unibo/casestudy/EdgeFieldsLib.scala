@@ -22,7 +22,10 @@ trait EdgeFieldsLib {
     )
 
   def channel(source: Boolean, dest: Boolean, width: Double): Boolean = {
-    distanceTo(source, nbrRangeEF) + distanceTo(dest, nbrRangeEF) <= distance(source, dest) + width
+    val ds = distanceTo(source, nbrRangeEF)
+    val dd = distanceTo(dest, nbrRangeEF)
+    val dsd = distance(source, dest)
+    if(ds==Double.PositiveInfinity || dd==Double.PositiveInfinity || dsd==Double.PositiveInfinity) false else ds + dd < dsd + width
   }
 
   /**
@@ -152,7 +155,7 @@ trait EdgeFieldsLib {
     })
   }
 
-  def keep[T](value: T, retentionTime: Long) = repByExchange((value,0L))(v => {
-    if(v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
+  def keep[T](value: T, retentionTime: Long, iff: T => Boolean) = repByExchange((value,0L))(v => {
+    if(iff(v._1) && v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
   })._1
 }

@@ -195,4 +195,11 @@ trait EdgeFields extends FieldUtils {
       def foldSum(init: T): EdgeField[T] = f.fold(init)(ev.plus)
       def foldSum(): EdgeField[T] = foldSum(ev.zero)
     }
+
+  implicit class FieldOfTuples[A, B](f: EdgeField[Tuple2[A, B]]) {
+    def _1: EdgeField[A] = f.map(_._1)
+
+    def _2: EdgeField[B] = f.map(_._2)
+  }
+
   }
