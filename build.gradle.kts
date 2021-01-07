@@ -125,6 +125,7 @@ fun makeTest(
     val today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
     task<JavaExec>("$name") {
+        dependsOn("build")
         classpath = sourceSets["main"].runtimeClasspath
         classpath("src/main/protelis")
         main = "it.unibo.alchemist.Alchemist"
@@ -157,7 +158,8 @@ fun makeTest(
 
 makeTest(name="hello", file = "casestudy", time = 10000.0, vars = setOf(), taskSize = 2800, effects =  "casestudy")
 makeTest(name="channel", file = "channel", effects =  "channel")
+makeTest(name="g", file = "channel", time = 100.0, vars = setOf("random"), taskSize = 2800)
 
-makeTest(name="g", file = "casestudy", time = 100.0, vars = setOf("random"), taskSize = 2800)
+makeTest(name="casestudy", file = "casestudy", time = 300.0, vars = setOf("random"), taskSize = 2800)
 
 defaultTasks("fatJar")
