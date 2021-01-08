@@ -146,7 +146,7 @@ def plot(config,content):
     for k in range(1,len(pformat)): # skip x-axis which is at pos 0
       plt.plot(content[pformat[0]], content[pformat[k]], color=the_plots_colors[nf][pformat[k]], label=the_plots_labels[pformat[k]], linewidth=line_widths[nf][k])
       maxy = max(maxy, np.nanmax(content[pformat[k]]))
-    maxy = min(maxy+1, limitPlotY[nf])
+    maxy = min(maxy+aboveMaxY[nf], limitPlotY[nf])
     if forceLimitPlotY.has_key(nf): maxy = forceLimitPlotY[nf]
     axes = plt.gca()
     axes.set_ylim(ymax = maxy, ymin = startPlotY[nf])  
@@ -174,6 +174,7 @@ forceLimitPlotY = None
 forceLimitPlotX = None
 doWrap = None
 limitPlotY = {}
+aboveMaxY = {}
 fill_between = []
 default_colors = ["black","red","blue","green"]
 the_plots_labels = []
@@ -233,6 +234,7 @@ with open(plotconfig, 'r') as stream:
         suffixes = parse_sim_option(pc, 'file_suffixes')
         line_widths = parse_sim_option(pc, 'line_widths')
         limitPlotY = parse_sim_option(pc, 'limit_plot_y', float('inf'))
+        aboveMaxY = parse_sim_option(pc, 'above_max_y', 0)
         startPlotY = parse_sim_option(pc, 'start_plot_y', 0)
         forceLimitPlotY = parse_sim_option(pc, 'force_limit_plot_y')
         forceLimitPlotX = parse_sim_option(pc, 'force_limit_plot_x')

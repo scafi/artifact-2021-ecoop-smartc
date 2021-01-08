@@ -12,7 +12,9 @@ case class Logs(id: ID)(val content: String, val timestamp: Long) {
   override def toString: String = s"Logs($id)[$timestamp]"
 }
 
-case class WarningReport(meanWarning: Double, logs: Set[Logs])
+case class WarningReport(from: ID, sumWarning: Double, numDevices: Double, timestamp: Long, logs: Set[Logs]) {
+  def meanWarning = sumWarning / numDevices
+}
 
 class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with EdgeFields with EdgeFieldsLib {
   val SENSOR_DETECTOR_ID = "detectorId"
@@ -26,9 +28,15 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
   val SENSOR_LOCAL_NUM_OF_DEVICES: String = "totalNumOfDevices"
 
   override def main(): Any = {
+    cleanState
+
     lazy val totalNumOfDevices = sense[Int](SENSOR_LOCAL_NUM_OF_DEVICES)
     def isDetector: Boolean = mid == sense[ID](SENSOR_DETECTOR_ID)
-    def isCollector: Boolean = mid == sense[ID](SENSOR_COLLECTOR_ID)
+    def isCollector: Boolean = {
+      var collectors = sense[List[ID]](SENSOR_COLLECTOR_ID)
+      if(timestamp()>100) collectors = collectors.tail
+      collectors.contains(mid)
+    }
     lazy val surveillanceAreaSize: Double = sense[Double](SENSOR_SURVEILLANCE_AREA_SIZE)
     lazy val communicationRadius: Double = sense[Double](SENSOR_COMMUNICATION_RADIUS)
     lazy val warningThreshold: Double = sense[Double](SENSOR_WARNING_THRESHOLD)
@@ -44,7 +52,7 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
 
     val surveillanceArea = gradient(isDetector, nbrRangeEF)
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
-    val meanWarning: Double = branch(inSurveillanceArea){
+    val (sumWarning, numDevices) = branch(inSurveillanceArea){
       val (sumWarning, numDevices) = Cwmpg[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
         accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
@@ -52,12 +60,13 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
       node.put("sumWarningAtDetector", if(isDetector) sumWarning else 0)
       node.put("meanWarningOverallAtDetector", if(isDetector) sumWarning / totalNumOfDevices else 0)
       node.put("numDevicesAtDetector", if(isDetector) numDevices else 0)
-      sumWarning / numDevices.round
+      (sumWarning, numDevices)
     } {
       node.put("sumWarningAtDetector", 0)
       node.put("numDevicesAtDetector", 0)
-      0.0
+      (0.0, 0.0)
     }
+    val meanWarning = sumWarning / numDevices
     val warningDetected = meanWarning > warningThreshold
     val logs: Set[Logs] = branch(inSurveillanceArea) {
       val warning: Boolean = broadcast(surveillanceArea, keep(warningDetected, warningRetentionTime, (_: Boolean) == true))
@@ -68,23 +77,30 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
       }{ Set.empty }
     } { node.put("warning", false); Set.empty }
 
+    val dataToBeReported = WarningReport(mid, sumWarning, numDevices, timestamp(), logs)
     val reportingChannel = channel(isDetector, isCollector, channelWidth)
-    val reportedLogs = branch(reportingChannel){ broadcast(surveillanceArea, logs) }{ Set.empty }
+    val reportingData: Option[WarningReport] = branch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty }
 
     node.put("logs", logs)
     node.put("meanWarning", meanWarning)
     node.put("meanWarningAtDetector", if(isDetector) meanWarning else 0.0)
+    node.put("meanWarningAtCollector", reportingData.map(_.meanWarning).filter(_ => isCollector).getOrElse(0.0))
+    node.put("sumWarningAtCollector", reportingData.map(_.sumWarning).filter(_ => isCollector).getOrElse(0.0))
     node.put("surveillanceAreaGradient", surveillanceArea)
     node.put("inSurveillanceArea", if(inSurveillanceArea) 1 else 0)
     node.put("localWarningInSystem", localWarning)
-    node.put("localWarningInSurveillanceArea", if(inSurveillanceArea) localWarning else 0.0)
+    node.put("localWarningInSurveillanceArea", if(inSurveillanceArea) localWarning else Double.NaN)
     node.put("src", isDetector)
     node.put("dest", isCollector)
     node.put("area", inSurveillanceArea)
     node.put("warningDetected", warningDetected)
     node.put("c", reportingChannel)
-    node.put("dataAtCollector", if(isCollector) reportedLogs.size.toDouble else 0.0)
-    reportedLogs
+    node.put("dataAtCollector", reportingData.map(_.logs.size.toDouble).filter(_ => isCollector).getOrElse(0.0))
+    reportingData
+  }
+
+  def cleanState() = {
+    node.put("meanWarningAtCollector", 0.0)
   }
 
   implicit def OptionalToOption[E](p : Optional[E]) : Option[E] = if (p.isPresent) Some(p.get()) else None

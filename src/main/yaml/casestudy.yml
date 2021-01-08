@@ -12,7 +12,8 @@ variables:
   detectorId: &detectorId
     formula: 182
   collectorId: &collectorId
-    formula: 180
+    language: Scala
+    formula: List(180, 61)
   surveillanceAreaSize: &surveillanceAreaSize
     formula: 200.0
   warningThreshold: &warningThreshold
@@ -49,6 +50,12 @@ export:
     aggregators: [mean,sum]
     value-filter: onlyfinite
   - molecule: meanWarningOverallAtDetector
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: meanWarningAtCollector
+    aggregators: [sum]
+    value-filter: onlyfinite
+  - molecule: sumWarningAtCollector
     aggregators: [sum]
     value-filter: onlyfinite
 
@@ -129,4 +136,7 @@ displacements:
         concentration: *totalNumOfDevices
       - molecule: meanWarningOverallAtDetector
         concentration: 0.0
-
+      - molecule: meanWarningAtCollector
+        concentration: 0.0
+      - molecule: sumWarningAtCollector
+        concentration: 0.0

@@ -14,8 +14,11 @@ the_plots_labels:
   - 'meanSumWarningAtDetector'
   - 'collected warning (sum)' # 'sumSumWarningAtDetector'
   - 'collected mean warning' # 'meanWarningOverallAtDetector'
+  - 'mean warning at collector' # meanWarningAtCollector
+  - 'sum warning at collector' # sumWarningAtCollector
 the_plots_formats:
-  - [0,10,12]
+  - [0,9,14]
+  - [0,10,15]
 #y_labels: ['# of requests', '# of requests','','% of utilization of workers']
 #file_suffixes:
 #  - errors
@@ -23,20 +26,23 @@ line_widths:
   - [2,2,2,2,2,2,2,2,2,2,2,2,2]
 default_colors: &default_colors ["black", "black", "orange","red","yellow",
                                  "black", "blue","purple",
-                                 "red", "magenta", "orange", "green", "brown", "cyan"]
+                                 "red", "magenta", "orange", "green", "brown", "cyan",
+                                 "darkblue", "gray"]
 the_plots_colors:
   - *default_colors
 legend_position:
-  - "upper right"
+  - "lower left"
   - "upper right"
 legend_size: 12
 force_limit_plot_y:
+above_max_y:
+  0: 20
 #   3: 1000
 #  4: 35
 #  0: 40
 #  3: 80
-#force_limit_plot_x:
-#  0: 800
+force_limit_plot_x:
+  0: 200
 #  1: 800
 #  3: 800
 sampling: false
