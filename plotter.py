@@ -146,7 +146,7 @@ def plot(config,content):
     for k in range(1,len(pformat)): # skip x-axis which is at pos 0
       plt.plot(content[pformat[0]], content[pformat[k]], color=the_plots_colors[nf][pformat[k]], label=the_plots_labels[pformat[k]], linewidth=line_widths[nf][k])
       maxy = max(maxy, np.nanmax(content[pformat[k]]))
-    maxy = min(maxy+aboveMaxY[nf], limitPlotY[nf])
+    maxy = min(maxy+aboveMaxY[nf]*maxy, limitPlotY[nf])
     if forceLimitPlotY.has_key(nf): maxy = forceLimitPlotY[nf]
     axes = plt.gca()
     axes.set_ylim(ymax = maxy, ymin = startPlotY[nf])  
@@ -155,10 +155,10 @@ def plot(config,content):
     t = plt.title(title_prefix[nf]+title)
     plt.subplots_adjust(top=.84) 
     suffix = (suffixes[nf] if suffixes.has_key(nf) else "".join(map(str,pformat))) + "_" + parts_suffix
-    savefn = outdir+basefn+"_"+ suffix +".png"
+    savefn = outdir+basefn+"_"+ suffix +".pdf"
     print("SAVE: " + savefn)
     plt.tight_layout()
-    plt.savefig(savefn, bbox_inches='tight', pad_inches = 0)  
+    plt.savefig(savefn, bbox_inches='tight', pad_inches = 0, format='pdf')
     plt.close() 
 
 pp = pprint.PrettyPrinter(indent=4) # for logging purposes

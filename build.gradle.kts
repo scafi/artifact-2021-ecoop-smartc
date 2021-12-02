@@ -161,5 +161,7 @@ makeTest(name="channel", file = "channel", effects =  "channel")
 makeTest(name="g", file = "channel", time = 100.0, vars = setOf("random"), taskSize = 2800)
 
 makeTest(name="casestudy", file = "casestudy", time = 300.0, vars = setOf("random"), taskSize = 2800)
+makeTest(name="matrix", file = "casestudy", time = 300.0, vars = setOf("random","commRadius","totalNumOfDevices","moveSpeed","sigmaWarning"), taskSize = 2800)
+
 
 defaultTasks("fatJar")

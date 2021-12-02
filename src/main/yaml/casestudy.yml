@@ -1,7 +1,7 @@
 variables:
   random: &random
     min: 0
-    max: 1
+    max: 29
     step: 1
     default: 1
   commRadius: &commRadius
@@ -19,13 +19,34 @@ variables:
   warningThreshold: &warningThreshold
     formula: 4.5
   warningRetentionTime: &warningRetentionTime
-    formula: 30
+    formula: 5
   eventWindow: &eventWindow
     language: Scala
-    formula: (30,150)
+    formula: (30,250)
+  obstacleWindow: &obstacleWindow
+    language: Scala
+    formula: (120,300)
   totalNumOfDevices: &totalNumOfDevices
-    formula: 200
-              
+    min: 200
+    max: 720
+    step: 250
+    default: 600
+  moveRange: &moveRange
+    formula: 20.0
+  moveSpeed: &moveSpeed
+    min: 0.000005
+    max: 0.000015
+    step: 0.000005
+    default: 0.00001
+  speed: &speed
+    type: ArbitraryVariable
+    parameters: [3, [0, 0.1, 0.3, 1, 3]]
+  sigmaWarning: &sigmaWarning
+    min: 0.0002
+    max: 0.0005
+    step: 0.0002
+    default: 0.0003
+
 export:
   - time
   - molecule: localWarningInSystem
@@ -75,10 +96,19 @@ pools:
         - type: RunScafiProgram
           parameters: [it.unibo.casestudy.CaseStudy, 10]
     - program: send
+  - pool: &move
+      - time-distribution:
+          type: ExponentialTime
+          parameters: [5,2] # rate, initial time
+        type: Event
+        actions:
+          - type: MoveToTarget
+            parameters: ["move_to", *moveSpeed]
+
 
 environment:
   type: OSMEnvironment
-  parameters: [cesena.pbf, false, false]
+  parameters: [cesena.pbf, false, false] # map, onstreets, onlyOnStreets
 #  -b=12.24045,44.13541,12.24851,44.13886
 
 layers:
@@ -87,18 +117,23 @@ layers:
     parameters: [ 25.0 ]
   - type: BidimensionalGaussianLayer
     molecule: localWarning
-    parameters: [ 0, 12.241355, 44.138149, 50.0, 0.0005, 0.0005] # baseline, centerX, centerY, norm, sigmaX, sigmaY
+    parameters: [ 0, 12.241355, 44.138149, 50.0, *sigmaWarning, *sigmaWarning] # baseline, centerX, centerY, norm, sigmaX, sigmaY
+  - type: BidimensionalGaussianLayer
+    molecule: obstacle
+    parameters: [ 0, 12.243954, 44.13776, 50.0, 0.0002, 0.0002] # baseline, centerX, centerY, norm, sigmaX, sigmaY
 
 network-model:
   type: ConnectWithinDistance
   parameters: [*commRadius]
 
 displacements:
+# COLLECTOR
   - in:
-      type: Rectangle #GeometricGradientRectangle
-      parameters: [*totalNumOfDevices, 44.13621, 12.24045, 0.00345, 0.00706] #[250, 44.13621, 12.24045, 0.00345, 0.00706, 1.2, false, false]
+      type: Point
+      parameters: [44.136683,12.246208]
     programs:
       - *program
+      - *move
     contents:
       - molecule: test
         concentration: true
@@ -116,6 +151,8 @@ displacements:
         concentration: *warningThreshold
       - molecule: eventWindow
         concentration: *eventWindow
+      - molecule: obstacleWindow
+        concentration: *obstacleWindow
       - molecule: warningRetentionTime
         concentration: *warningRetentionTime
       - molecule: localWarningInSystem
@@ -140,3 +177,121 @@ displacements:
         concentration: 0.0
       - molecule: sumWarningAtCollector
         concentration: 0.0
+      - molecule: move_to
+        concentration: 0.0
+      - molecule: collector
+        concentration: true
+      - molecule: detector
+        concentration: false
+# DETECTOR
+  - in:
+      type: Point
+      parameters: [44.138598,12.242447]
+    programs:
+      - *program
+      - *move
+    contents:
+      - molecule: test
+        concentration: true
+      - molecule: g
+        concentration: Double.PositiveInfinity
+      - molecule: commRadius
+        concentration: *commRadius
+      - molecule: detectorId
+        concentration: *detectorId
+      - molecule: collectorId
+        concentration: *collectorId
+      - molecule: surveillanceAreaSize
+        concentration: *surveillanceAreaSize
+      - molecule: warningThreshold
+        concentration: *warningThreshold
+      - molecule: eventWindow
+        concentration: *eventWindow
+      - molecule: obstacleWindow
+        concentration: *obstacleWindow
+      - molecule: warningRetentionTime
+        concentration: *warningRetentionTime
+      - molecule: localWarningInSystem
+        concentration: 0.0
+      - molecule: meanWarningAtDetector
+        concentration: 0.0
+      - molecule: dataAtCollector
+        concentration: 0.0
+      - molecule: inSurveillanceArea
+        concentration: 0.0
+      - molecule: numDevicesAtDetector
+        concentration: 0.0
+      - molecule: localWarningInSurveillanceArea
+        concentration: 0.0
+      - molecule: sumWarningAtDetector
+        concentration: 0.0
+      - molecule: totalNumOfDevices
+        concentration: *totalNumOfDevices
+      - molecule: meanWarningOverallAtDetector
+        concentration: 0.0
+      - molecule: meanWarningAtCollector
+        concentration: 0.0
+      - molecule: sumWarningAtCollector
+        concentration: 0.0
+      - molecule: move_to
+        concentration: 0.0
+      - molecule: collector
+        concentration: false
+      - molecule: detector
+        concentration: true
+# NORMAL NODES
+  - in:
+      type: Rectangle #GeometricGradientRectangle
+      parameters: [*totalNumOfDevices, 44.13621, 12.24045, 0.00345, 0.00706] #[250, 44.13621, 12.24045, 0.00345, 0.00706, 1.2, false, false]
+    programs:
+      - *program
+      - *move
+    contents:
+      - molecule: test
+        concentration: true
+      - molecule: g
+        concentration: Double.PositiveInfinity
+      - molecule: commRadius
+        concentration: *commRadius
+      - molecule: detectorId
+        concentration: *detectorId
+      - molecule: collectorId
+        concentration: *collectorId
+      - molecule: surveillanceAreaSize
+        concentration: *surveillanceAreaSize
+      - molecule: warningThreshold
+        concentration: *warningThreshold
+      - molecule: eventWindow
+        concentration: *eventWindow
+      - molecule: obstacleWindow
+        concentration: *obstacleWindow
+      - molecule: warningRetentionTime
+        concentration: *warningRetentionTime
+      - molecule: localWarningInSystem
+        concentration: 0.0
+      - molecule: meanWarningAtDetector
+        concentration: 0.0
+      - molecule: dataAtCollector
+        concentration: 0.0
+      - molecule: inSurveillanceArea
+        concentration: 0.0
+      - molecule: numDevicesAtDetector
+        concentration: 0.0
+      - molecule: localWarningInSurveillanceArea
+        concentration: 0.0
+      - molecule: sumWarningAtDetector
+        concentration: 0.0
+      - molecule: totalNumOfDevices
+        concentration: *totalNumOfDevices
+      - molecule: meanWarningOverallAtDetector
+        concentration: 0.0
+      - molecule: meanWarningAtCollector
+        concentration: 0.0
+      - molecule: sumWarningAtCollector
+        concentration: 0.0
+      - molecule: move_to
+        concentration: 0.0
+      - molecule: collector
+        concentration: false
+      - molecule: detector
+        concentration: false

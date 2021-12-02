@@ -31,20 +31,19 @@ default_colors: &default_colors ["black", "black", "orange","red","yellow",
 the_plots_colors:
   - *default_colors
 legend_position:
-  - "lower left"
-  - "upper right"
+  - "upper left"
 legend_size: 12
 force_limit_plot_y:
 above_max_y:
-  0: 20
+  0: 0.2
 #   3: 1000
 #  4: 35
 #  0: 40
 #  3: 80
 force_limit_plot_x:
-  0: 200
+#  0: 200
 #  1: 800
 #  3: 800
-sampling: false
+sampling: true
 #title_prefix: ''
 #excluded_titles: [0]
