@@ -5,33 +5,42 @@ import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 trait XCLib extends StandardSensors {
   self: XCLangImpl.XCLangSubComponent =>
 
-  def defSubs[T](ef: NValue[T], defaultValue: T): NValue[T] =
-    NValue(vm.alignedNeighbours().map(id => id -> ef.m.getOrElse(id, ef.default)).toMap, defaultValue)
-
-  def selfSubs[T](ef: NValue[T], selfValue: T): NValue[T] =
-    NValue(ef.m ++ Map[ID, T](mid -> selfValue), ef.default)
-
+  /**
+   * Expresses FC's `nbr` construct in terms of exchange`
+   */
   def nbrByExchange[A](e: => NValue[A]): NValue[A] =
     exchange[(A, A)](e.map2(e)((_, _)))(n => n.map2(e) { case (n, e) => (e, n._1) }).map(_._2) // NB: exchange(..)(..)._2 would compile but doesn't work
 
+  /**
+   * Expresses FC's `nbr` construct in terms of `exchange` -- working on local values
+   */
   def nbrLocalByExchange[A](e: => A): NValue[A] =
     exchange[(A, NValue[A])]((e, NValue.localToField(e)))(n => (e, n.map(_._1)))._2
 
+  /**
+   * Expresses FC's `rep` construct in terms of `exchange``
+   */
   def repByExchange[A](init: => A)(f: (A) => A): A =
     exchangeFull(init)(p => f(p.old))
 
+  /**
+   * Expresses FC's `share` construct in terms of `exchange`
+   */
   def shareByExchange[A](init: A)(f: A => A): A =
     exchange(init)(n => f(n))
 
-  // exchangeFull(init)(p => f(p.neigh))
-
-  def fsns[A](e: => A, defaultA: A): NValue[A] =
-    NValue[A](includingSelf.reifyField(e), defaultA)
-
+  /**
+   * @return a pair of `NValue`s
+   */
   def pair[A, B](a: NValue[A], b: NValue[B]): NValue[(A, B)] =
     a.map2(b)((_, _))
 
-
+  /**
+   * Broadcasts value `value` along the gradient `dist`.
+   * @param dist Potential field indicating the direction of information (and the point of the `value` to broadcast)
+   * @param value The value to be broadcasted
+   * @return The value broadcasted by the neighbour at minimum `dist`
+   */
   def broadcast[T](dist: Double, value: T): T = {
     val loc = (dist, value)
     exchange[(Double, T)](loc)(n => {
@@ -39,10 +48,10 @@ trait XCLib extends StandardSensors {
     })._2
   }
 
-  def distance(source: Boolean, dest: Boolean): Double = {
-    broadcast(distanceTo(source, nbrRangeEF), distanceTo(dest, nbrRangeEF))
-  }
-
+  /**
+   * Self-organising distance computation algorithm: it computes, in each node of the system, the distance
+   * from the closest `source`, according to `metric`. This is a distributed varion of the Bellman-Ford algorithm
+   */
   def distanceTo(source: Boolean, metric: NValue[Double]): Double =
     exchange(Double.PositiveInfinity)(n =>
       mux(source) {
@@ -52,12 +61,96 @@ trait XCLib extends StandardSensors {
       }
     )
 
+  /**
+   * This block computes the distance between `source` and `dest` and propagates that information on the whole network.
+   * @param source One endpoint of the distance calculation
+   * @param dest The other endpoint of the distance calculation
+   * @return the local view of the computed distance between `source` and `dest`
+   */
+  def distance(source: Boolean, dest: Boolean): Double = {
+    broadcast(distanceTo(source, nbrRangeEF), distanceTo(dest, nbrRangeEF))
+  }
+
+  /**
+   * Self-organising channel computation: it yields, in each node of the system, a Boolean indicating whether
+   * that node belongs to the channel connecting `source` with `dest` or not.
+   * @param source One endpoint of the channel
+   * @param dest Another andpoint of the channel
+   * @param width Parameter providing redundancy to the channel
+   * @return a Boolean indicating whether the node belongs to the channel or not
+   */
   def channel(source: Boolean, dest: Boolean, width: Double): Boolean = {
     val ds = distanceTo(source, nbrRangeEF)
     val dd = distanceTo(dest, nbrRangeEF)
     val dsd = distance(source, dest)
     if (ds == Double.PositiveInfinity || dd == Double.PositiveInfinity || dsd == Double.PositiveInfinity) false else ds + dd < dsd + width
   }
+
+  /**
+   * Function capturing a distributed collection process from all the devices in the system towards `sink`.
+   * In particular, it implements a weighted multi-path collection.
+   */
+  def collect[T](sink: Boolean, radius: Double, value: T, Null: T,
+                 accumulate: (NValue[T], T) => T,
+                 extract: (NValue[T], NValue[Double], NValue[Double], NValue[T]) => NValue[T],
+                 threshold: Double = 0.1
+                ): T = {
+    def weight(dist: Double, radius: Double): NValue[Double] = {
+      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
+      val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
+      // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
+      res.map(v => if (v.isNaN) 0 else v)
+    }
+
+    def normalize(w: NValue[Double]): NValue[Double] = {
+      val sum: Double = w.foldSum
+      val res = w.map(_ / sum)
+      res.map(v => if (v.isNaN) 0 else v)
+    }
+
+    val dist = gradient(sink, nbrRangeEF)
+    exchange(value)(n => {
+      val loc: T = accumulate(n.withoutSelf, value) // or also: accumulate(selfSubs(n, 0.0),value)
+      val w: NValue[Double] = weight(dist, radius)
+      val normalized: NValue[Double] = normalize(w)
+      val res: NValue[T] = extract(loc, normalized, threshold, Null)
+      selfSubs(res, loc)
+    })
+  }
+
+  /**
+   * Self-organising distance computation algorithm: it computes, in each node of the system, the distance
+   * from the closest `source`, according to `metric`. This is a distributed varion of the Bellman-Ford algorithm.
+   */
+  def gradient(source: Boolean, metric: NValue[Double]): Double = exchange(Double.PositiveInfinity)(n =>
+    mux(source) {
+      0.0
+    } {
+      (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min)
+    }
+  )
+
+  /**
+   * This implements a self-healing gradient based on the Bellman-Ford algorithm using hops as distance metrics.
+   */
+  def hopGradient(src: Boolean): NValue[Int] = exchange(Double.PositiveInfinity)(n =>
+    mux(src) {
+      0.0
+    } {
+      n.withoutSelf.fold(Double.PositiveInfinity)(Math.min) + 1
+    }
+  ).toInt
+
+  /**
+   * Builds an `NValue` from a field expressed by `e`
+   */
+  def fsns[A](e: => A, defaultA: A): NValue[A] =
+    NValue[A](includingSelf.reifyField(e), defaultA)
+
+  /**
+   * The neighbouring sensor providing distances to neighbours, as a function providing an `NValue`
+   */
+  def nbrRangeEF: NValue[Double] = fsns(nbrRange, Double.PositiveInfinity)
 
   /**
    * Weights corresponding to neighbours are calculated in order to penalise devices that are likely to lose
@@ -99,16 +192,6 @@ trait XCLib extends StandardSensors {
     })
   }
 
-  def gradient(source: Boolean, metric: NValue[Double]): Double = exchange(Double.PositiveInfinity)(n =>
-    mux(source) {
-      0.0
-    } {
-      (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min)
-    }
-  )
-
-  def nbrRangeEF: NValue[Double] = fsns(nbrRange, Double.PositiveInfinity)
-
   /**
    * - Every node receives by a single parent
    * - Every node transmits to all those neighbours that chose it as a parent
@@ -136,16 +219,11 @@ trait XCLib extends StandardSensors {
     })
   }
 
-  def hopGradient(src: Boolean): NValue[Int] = exchange(Double.PositiveInfinity)(n =>
-    mux(src) {
-      0.0
-    } {
-      n.withoutSelf.fold(Double.PositiveInfinity)(Math.min) + 1
-    }
-  ).toInt
-
   def biConnection(): NValue[Int] = exchange(0)(n => n + defSubs(1, 0))
 
+  /**
+   * A collection function (not used in the case study).
+   */
   def Csubj[P: Builtins.Bounded, V](sink: Boolean, value: V, acc: (V, V) => V, divide: (V, Double) => V): V = {
     val dist: Int = hopGradient(sink)
     // Use exchange to handle communication of distances (dist) and collected values
@@ -172,38 +250,16 @@ trait XCLib extends StandardSensors {
     })._2
   }
 
-  // NEW FUNCTIONS, POSSIBLY TO BE ADDED TO STDLIB?
-
-
-  def Cwmpg[T](sink: Boolean, radius: Double, value: T, Null: T,
-               accumulate: (NValue[T], T) => T,
-               extract: (NValue[T], NValue[Double], NValue[Double], NValue[T]) => NValue[T],
-               threshold: Double = 0.1
-              ): T = {
-    def weight(dist: Double, radius: Double): NValue[Double] = {
-      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
-      val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
-      // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
-      res.map(v => if (v.isNaN) 0 else v)
-    }
-
-    def normalize(w: NValue[Double]): NValue[Double] = {
-      val sum: Double = w.foldSum
-      val res = w.map(_ / sum)
-      res.map(v => if (v.isNaN) 0 else v)
-    }
-
-    val dist = gradient(sink, nbrRangeEF)
-    exchange(value)(n => {
-      val loc: T = accumulate(n.withoutSelf, value) // or also: accumulate(selfSubs(n, 0.0),value)
-      val w: NValue[Double] = weight(dist, radius)
-      val normalized: NValue[Double] = normalize(w)
-      val res: NValue[T] = extract(loc, normalized, threshold, Null)
-      selfSubs(res, loc)
-    })
-  }
-
+  /**
+   * Retains a value `v` for `retentionTime` rounds, before switching to the new `value`.
+   */
   def keep[T](value: T, retentionTime: Long, iff: T => Boolean) = repByExchange((value, 0L))(v => {
     if (iff(v._1) && v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
   })._1
+
+  def defSubs[T](ef: NValue[T], defaultValue: T): NValue[T] =
+    NValue(vm.alignedNeighbours().map(id => id -> ef.m.getOrElse(id, ef.default)).toMap, defaultValue)
+
+  def selfSubs[T](ef: NValue[T], selfValue: T): NValue[T] =
+    NValue(ef.m ++ Map[ID, T](mid -> selfValue), ef.default)
 }

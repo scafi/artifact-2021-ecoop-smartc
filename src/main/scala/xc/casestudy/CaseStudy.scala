@@ -50,7 +50,7 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
     val surveillanceArea = gradient(isDetector, nbrRangeEF)
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
     val (sumWarning, numDevices) = branch(inSurveillanceArea){
-      val (sumWarning, numDevices) = Cwmpg[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
+      val (sumWarning, numDevices) = collect[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
         accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
       )
@@ -69,7 +69,7 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
       val warning: Boolean = broadcast(surveillanceArea, keep(warningDetected, warningRetentionTime, (_: Boolean) == true))
       node.put(EXPORT_WARNING, warning)
       branch(warning) {
-        Cwmpg[Set[Logs]](isDetector, communicationRadius, if (localWarning > 0) Set(Logs(mid)("", timestamp())) else Set.empty, Set.empty,
+        collect[Set[Logs]](isDetector, communicationRadius, if (localWarning > 0) Set(Logs(mid)("", timestamp())) else Set.empty, Set.empty,
           accumulate = (ef, t) => t ++ ef.fold(Set.empty)(_++_), extract = (v, w, th, Null) => v)
       }{ Set.empty }
     } { node.put(EXPORT_WARNING, false); Set.empty }

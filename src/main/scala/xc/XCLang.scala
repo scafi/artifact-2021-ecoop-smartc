@@ -66,6 +66,9 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
       ExchangeParams(tuple._1, tuple._2)
   }
 
+  /**
+   * Slot object corresponding to a value tree node
+   */
   private val EXCHANGE_SLOT = Scope("exchange")
 }
 

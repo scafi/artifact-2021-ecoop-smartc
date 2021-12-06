@@ -3,14 +3,25 @@ package xc
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 import Builtins._
 
+/**
+ * This component provides a definition for `NValue`s.
+ * This is a trait that requires to be mixed in with `XCLangImpl`.
+ * In particular, this component:
+ *
+ * - Provides an `NValue` data type
+ * - Provides built-ins operating on `NValue`s
+ * - Provides implicit conversions to/from `NValue`s
+ * - Provides utilities for working with `NValue`s of `Numeric`s
+ */
 trait NValues {
   self: XCLangImpl.XCLangSubComponent =>
 
   /**
-   * Basic Field type
+   * Data type capturing neighbouring values, i.e., values modelling data received from or to be sent to neighbours.
    *
    * @param m map from devices to corresponding values
-   * @tparam T type of field values
+   * @param default default value for neighbours for which no value is present in `m`
+   * @tparam T type of neighbouring values
    */
   class NValue[T](val m: Map[ID, T], override val default: T) extends Defaultable[T] {
     implicit val defaultable: Defaultable[T] = this
@@ -83,8 +94,10 @@ trait NValues {
     override def toString: String = s"EdgeField[default=$default, exceptions=$m]"
   }
 
+  /**
+   * Companion object for `NValue`s: provides factory methods and implicit conversions.
+   */
   object NValue {
-
     def apply[T](m: Map[ID, T])(implicit defaultable: Builtins.Defaultable[T]): NValue[T] =
       apply(m, defaultable.default)
 
@@ -100,7 +113,7 @@ trait NValues {
   }
 
   /**
-   * Syntactic sugar for numeric fields.
+   * Syntactic sugar for numeric `NValue`s.
    */
   implicit class NumericNValue[T: Numeric](f: NValue[T]) extends Defaultable[T] {
     private val ev = implicitly[Numeric[T]]
@@ -125,6 +138,9 @@ trait NValues {
     def foldSum(): NValue[T] = foldSum(ev.zero)
   }
 
+  /**
+   * Syntactic sugar for `NValue`s of pairs.
+   */
   implicit class NValueOfTuples[A, B](f: NValue[Tuple2[A, B]]) {
     def _1: NValue[A] = f.map(_._1)
 
