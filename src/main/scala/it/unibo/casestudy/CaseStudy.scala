@@ -12,6 +12,7 @@ import scala.util.{Success, Try}
 class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
   import CaseStudy._
 
+
   override def main(): Any = {
     cleanState
 
@@ -40,10 +41,10 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
     def localWarning: Double = if(timestamp() >= eventStartTime && timestamp() <= eventEndTime) { senseEnv[Double](LAYER_LOCAL_WARNING) } else 0.0
     def isObstacle: Boolean = if(timestamp() >= obstacleStartTime && timestamp() <= obstacleEndTime) {
       val obstacle = senseEnv[Double](LAYER_OBSTACLE_LOCATION)
-      obstacle > 0.1
+      obstacle > PARAMETER_OBSTACLE_PERCEPTION_THRESHOLD
     } else false
     lazy val warningRetentionTime = sense[Int](SENSOR_WARNING_RETENTION_TIME)
-    val channelWidth = 10
+    val channelWidth = PARAMETER_CHANNEL_WIDTH
 
     val surveillanceArea = gradient(isDetector, nbrRangeEF)
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
@@ -95,8 +96,6 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
     val p = currentPos()
     val newPos =  new LatLongPosition(p.getLatitude + (nextRandom() - 0.5), p.getLongitude + (nextRandom() - 0.5))
     node.put(ACTUATOR_MOVE_TO, newPos)
-    if(!isDetector && !isCollector) {
-    }
     reportingData
   }
 
@@ -171,4 +170,7 @@ object CaseStudy {
   val EXPORT_INSIDE_SURVEILLANCE_AREA = "area"
   val EXPORT_WARNING_DETECTED = "warningDetected"
   val EXPORT_DATA_AT_COLLECTOR = "dataAtCollector"
+
+  val PARAMETER_CHANNEL_WIDTH = 10
+  val PARAMETER_OBSTACLE_PERCEPTION_THRESHOLD = 0.1
 }
