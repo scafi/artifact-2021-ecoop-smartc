@@ -2,8 +2,35 @@ package it.unibo.casestudy
 
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 
-trait XCLib {
-  self: FieldCalculusSyntax with ExecutionTemplate with StandardSensors with XCLangImpl =>
+trait XCLib extends StandardSensors {
+  self: XCLangImpl.XCLangSubComponent =>
+
+  def defSubs[T](ef: NValue[T], defaultValue: T): NValue[T] =
+    NValue(vm.alignedNeighbours().map(id => id -> ef.m.getOrElse(id, ef.default)).toMap, defaultValue)
+
+  def selfSubs[T](ef: NValue[T], selfValue: T): NValue[T] =
+    NValue(ef.m ++ Map[ID, T](mid -> selfValue), ef.default)
+
+  def nbrByExchange[A](e: => NValue[A]): NValue[A] =
+    exchange[(A, A)](e.map2(e)((_, _)))(n => n.map2(e) { case (n, e) => (e, n._1) }).map(_._2) // NB: exchange(..)(..)._2 would compile but doesn't work
+
+  def nbrLocalByExchange[A](e: => A): NValue[A] =
+    exchange[(A, NValue[A])]((e, NValue.localToField(e)))(n => (e, n.map(_._1)))._2
+
+  def repByExchange[A](init: => A)(f: (A) => A): A =
+    exchangeFull(init)(p => f(p.old))
+
+  def shareByExchange[A](init: A)(f: A => A): A =
+    exchange(init)(n => f(n))
+
+  // exchangeFull(init)(p => f(p.neigh))
+
+  def fsns[A](e: => A, defaultA: A): NValue[A] =
+    NValue[A](includingSelf.reifyField(e), defaultA)
+
+  def pair[A, B](a: NValue[A], b: NValue[B]): NValue[(A, B)] =
+    a.map2(b)((_, _))
+
 
   def broadcast[T](dist: Double, value: T): T = {
     val loc = (dist, value)
