@@ -1,0 +1,77 @@
+the_plots_labels:
+  - Time                 #0
+  - 'localWarningInSystem min'
+  - 'localWarningInSystem max'
+  - 'mean warning overall (truth)' # 'localWarningInSystem mean'
+  - 'localWarningInSystem sum'
+  - 'meanWarningAtDetector' #5
+  - 'dataAtCollector'
+  - 'inSurveillanceArea'
+  - 'numDevicesAtDetector'
+  - 'mean warning in area (truth)' #'meanlocalWarningInSurveillanceArea'
+  - 'total warning (truth)' #'sumlocalWarningInSurveillanceArea' #10
+  - 'meanSumWarningAtDetector'
+  - 'collected warning (sum)' # 'sumSumWarningAtDetector'
+  - 'collected mean warning' # 'meanWarningOverallAtDetector'
+  - 'mean warning at collector' # meanWarningAtCollector
+  - 'sum warning at collector' # sumWarningAtCollector
+the_plots_formats:
+  - [0,9,14]
+  - [0,10,15]
+#  - [0,1,2,3,4,7,8,6,9,10]
+#y_labels: ['# of requests', '# of requests','','% of utilization of workers']
+#file_suffixes:
+#  - errors
+line_styles: #[‘solid’ | ‘dashed’, ‘dashdot’, ‘dotted’ | (offset, on-off-dash-seq) | '-' | '--' | '-.' | ':' | 'None' | ' ' | '']
+  - ['solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',   'solid','solid','solid','solid','solid']
+  - ['solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',    'solid','solid','solid','solid','solid',
+     'solid','solid','solid','solid','solid',   'solid','solid','solid','solid','solid']
+line_widths:
+  - [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+default_colors: &default_colors ["black", "black", "orange","red","yellow",
+                                 "black", "blue","purple",
+                                 "red", "magenta", "orange", "green", "brown", "cyan",
+                                 "darkblue", "gray", "blue"]
+the_plots_colors:
+  - *default_colors
+legend_position:
+  - "upper left"
+  - "upper right"
+legend_bbox_to_anchor:
+#  - [-0.077,-0.2]
+#  - [-0.077,-0.2]
+legend_columns:
+  - 1
+  - 1
+legend_size: 12
+export_legend:
+#  0: true
+#force_limit_plot_y:
+#   0: 3.5
+#force_limit_plot_x:
+#  0: 800
+#  1: 800
+#  3: 800
+hlines:
+  #0: [[10, { linestyle: '--' }]]
+vlines:
+#  0: [[30, { linestyle: ':' , color: 'gray'}],[400, { linestyle: ':' , color: 'gray'}]]
+#  1: [[30, { linestyle: ':' , color: 'red'}]]
+sampling:
+  0: true
+  1: true
+  2: true
+  3: true
+  4: true
+format: 'pdf'
+#title_prefix: ''
+excluded_titles:
+#  0: [0] # [1]
+lines_styles:
+above_max_y:
+  0: 0.3
