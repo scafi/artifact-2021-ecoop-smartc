@@ -49,7 +49,7 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
 
     val surveillanceArea = gradient(isDetector, nbrRangeEF)
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
-    val (sumWarning, numDevices) = branch(inSurveillanceArea){
+    val (sumWarning, numDevices): (Double, Double) = xcbranch(inSurveillanceArea){
       val (sumWarning, numDevices) = collect[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
         accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
@@ -65,18 +65,18 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
     }
     val meanWarning = sumWarning / numDevices
     val warningDetected = meanWarning > warningThreshold
-    val logs: Set[Logs] = branch(inSurveillanceArea) {
+    val logs: Set[Logs] = xcbranch(inSurveillanceArea) {
       val warning: Boolean = broadcast(surveillanceArea, keep(warningDetected, warningRetentionTime, (_: Boolean) == true))
       node.put(EXPORT_WARNING, warning)
-      branch(warning) {
+      xcbranch(warning) {
         collect[Set[Logs]](isDetector, communicationRadius, if (localWarning > 0) Set(Logs(mid)("", timestamp())) else Set.empty, Set.empty,
           accumulate = (ef, t) => t ++ ef.fold(Set.empty)(_++_), extract = (v, w, th, Null) => v)
-      }{ Set.empty }
-    } { node.put(EXPORT_WARNING, false); Set.empty }
+      }{ Set.empty[Logs] }
+    } { node.put(EXPORT_WARNING, false); Set.empty[Logs] }
 
     val dataToBeReported = WarningReport(mid, sumWarning, numDevices, timestamp(), logs)
-    val reportingChannel = branch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
-    val reportingData: Option[WarningReport] = branch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty }
+    val reportingChannel = xcbranch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
+    val reportingData: Option[WarningReport] = xcbranch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty[WarningReport] }
 
     node.put(EXPORT_IS_OBSTACLE, isObstacle)
     node.put(EXPORT_LOGS, logs)
