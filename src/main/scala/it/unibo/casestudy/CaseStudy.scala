@@ -6,32 +6,11 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule
 import it.unibo.alchemist.model.implementations.positions.LatLongPosition
 import it.unibo.alchemist.model.interfaces.{Layer, Position}
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
-import it.unibo.scafi.space.Point2D
 
 import scala.util.{Success, Try}
 
-case class Logs(id: ID)(val content: String, val timestamp: Long) {
-  override def toString: String = s"Logs($id)[$timestamp]"
-}
-
-case class WarningReport(from: ID, sumWarning: Double, numDevices: Double, timestamp: Long, logs: Set[Logs]) {
-  def meanWarning = sumWarning / numDevices
-}
-
 class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
-  val SENSOR_DETECTOR_ID = "detectorId"
-  val SENSOR_COLLECTOR_ID = "collectorId"
-  val SENSOR_SURVEILLANCE_AREA_SIZE = "surveillanceAreaSize"
-  val SENSOR_COMMUNICATION_RADIUS = "commRadius"
-  val SENSOR_WARNING_THRESHOLD = "warningThreshold"
-  val LAYER_LOCAL_WARNING = "localWarning" // from a layer
-  val SENSOR_EVENT_WINDOW = "eventWindow"
-  val SENSOR_OBSTACLE_WINDOW = "obstacleWindow"
-  val SENSOR_WARNING_RETENTION_TIME: String = "warningRetentionTime"
-  val SENSOR_LOCAL_NUM_OF_DEVICES: String = "totalNumOfDevices"
-  val SENSOR_IS_COLLECTOR: String = "collector"
-  val SENSOR_IS_DETECTOR: String = "detector"
-  val LAYER_OBSTACLE_LOCATION: String = "obstacle"
+  import CaseStudy._
 
   override def main(): Any = {
     cleanState
@@ -73,49 +52,49 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
         accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
       )
-      node.put("sumWarningAtDetector", if(isDetector) sumWarning else 0)
-      node.put("meanWarningOverallAtDetector", if(isDetector) sumWarning / totalNumOfDevices else 0)
-      node.put("numDevicesAtDetector", if(isDetector) numDevices else 0)
+      node.put(EXPORT_SUM_WARNING_AT_DETECTOR, if(isDetector) sumWarning else 0)
+      node.put(EXPORT_MEAN_WARNING_AT_DETECTOR, if(isDetector) sumWarning / totalNumOfDevices else 0)
+      node.put(EXPORT_NUM_DEVICES_AT_DETECTOR, if(isDetector) numDevices else 0)
       (sumWarning, numDevices)
     } {
-      node.put("sumWarningAtDetector", 0)
-      node.put("numDevicesAtDetector", 0)
+      node.put(EXPORT_SUM_WARNING_AT_DETECTOR, 0)
+      node.put(EXPORT_NUM_DEVICES_AT_DETECTOR, 0)
       (0.0, 0.0)
     }
     val meanWarning = sumWarning / numDevices
     val warningDetected = meanWarning > warningThreshold
     val logs: Set[Logs] = branch(inSurveillanceArea) {
       val warning: Boolean = broadcast(surveillanceArea, keep(warningDetected, warningRetentionTime, (_: Boolean) == true))
-      node.put("warning", warning)
+      node.put(EXPORT_WARNING, warning)
       branch(warning) {
         Cwmpg[Set[Logs]](isDetector, communicationRadius, if (localWarning > 0) Set(Logs(mid)("", timestamp())) else Set.empty, Set.empty,
           accumulate = (ef, t) => t ++ ef.fold(Set.empty)(_++_), extract = (v, w, th, Null) => v)
       }{ Set.empty }
-    } { node.put("warning", false); Set.empty }
+    } { node.put(EXPORT_WARNING, false); Set.empty }
 
     val dataToBeReported = WarningReport(mid, sumWarning, numDevices, timestamp(), logs)
     val reportingChannel = branch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
     val reportingData: Option[WarningReport] = branch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty }
 
-    node.put("isObstacle", isObstacle)
-    node.put("logs", logs)
-    node.put("meanWarning", meanWarning)
-    node.put("meanWarningAtDetector", if(isDetector) meanWarning else 0.0)
-    node.put("meanWarningAtCollector", reportingData.map(_.meanWarning).filter(_ => isCollector).getOrElse(0.0))
-    node.put("sumWarningAtCollector", reportingData.map(_.sumWarning).filter(_ => isCollector).getOrElse(0.0))
-    node.put("surveillanceAreaGradient", surveillanceArea)
-    node.put("inSurveillanceArea", if(inSurveillanceArea) 1 else 0)
-    node.put("localWarningInSystem", localWarning)
-    node.put("localWarningInSurveillanceArea", if(inSurveillanceArea) localWarning else Double.NaN)
-    node.put("src", isDetector)
-    node.put("dest", isCollector)
-    node.put("area", inSurveillanceArea)
-    node.put("warningDetected", warningDetected)
-    node.put("c", reportingChannel)
-    node.put("dataAtCollector", reportingData.map(_.logs.size.toDouble).filter(_ => isCollector).getOrElse(0.0))
+    node.put(EXPORT_IS_OBSTACLE, isObstacle)
+    node.put(EXPORT_LOGS, logs)
+    node.put(EXPORT_MEAN_WARNING, meanWarning)
+    node.put(EXPORT_MEAN_WARNING_AT_DETECTOR, if(isDetector) meanWarning else 0.0)
+    node.put(EXPORT_MEAN_WARNING_AT_COLLECTOR, reportingData.map(_.meanWarning).filter(_ => isCollector).getOrElse(0.0))
+    node.put(EXPORT_SUM_WARNING_AT_COLLECTOR, reportingData.map(_.sumWarning).filter(_ => isCollector).getOrElse(0.0))
+    node.put(EXPORT_SURVEILLANCE_AREA_GRADIENT, surveillanceArea)
+    node.put(EXPORT_INSIDE_SURVEILLANCE_AREA_AS_INT, if(inSurveillanceArea) 1 else 0)
+    node.put(EXPORT_LOCAL_WARNING, localWarning)
+    node.put(EXPORT_LOCAL_WARNING_IN_AREA_ONLY, if(inSurveillanceArea) localWarning else Double.NaN)
+    node.put(EXPORT_SOURCE, isDetector)
+    node.put(EXPORT_DESTINATION, isCollector)
+    node.put(EXPORT_INSIDE_SURVEILLANCE_AREA, inSurveillanceArea)
+    node.put(EXPORT_WARNING_DETECTED, warningDetected)
+    node.put(EXPORT_IN_CHANNEL, reportingChannel)
+    node.put(EXPORT_DATA_AT_COLLECTOR, reportingData.map(_.logs.size.toDouble).filter(_ => isCollector).getOrElse(0.0))
     val p = currentPos()
     val newPos =  new LatLongPosition(p.getLatitude + (nextRandom() - 0.5), p.getLongitude + (nextRandom() - 0.5))
-    node.put("move_to", newPos)
+    node.put(ACTUATOR_MOVE_TO, newPos)
     if(!isDetector && !isCollector) {
     }
     reportingData
@@ -124,7 +103,7 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
   def currentPos(): LatLongPosition = sense[LatLongPosition](LSNS_POSITION)
 
   def cleanState() = {
-    node.put("meanWarningAtCollector", 0.0)
+    node.put(EXPORT_MEAN_WARNING_AT_COLLECTOR, 0.0)
   }
 
   implicit def OptionalToOption[E](p : Optional[E]) : Option[E] = if (p.isPresent) Some(p.get()) else None
@@ -137,8 +116,59 @@ class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemis
       .collect { case Success(value) => value }
   }
 
-  //TODO fix in the alchemist
+  // TODO fix in the alchemist
   def senseEnv[A](name: String): A = {
     findInLayers[A](name).get
   }
+}
+
+/**
+ * Companion object for the case study program.
+ * It defines data structures and parameters used by the case study program.
+ */
+object CaseStudy {
+  case class Logs(id: ID)(val content: String, val timestamp: Long) {
+    override def toString: String = s"Logs($id)[$timestamp]"
+  }
+
+  case class WarningReport(from: ID, sumWarning: Double, numDevices: Double, timestamp: Long, logs: Set[Logs]) {
+    def meanWarning = sumWarning / numDevices
+  }
+
+  val SENSOR_DETECTOR_ID = "detectorId"
+  val SENSOR_COLLECTOR_ID = "collectorId"
+  val SENSOR_SURVEILLANCE_AREA_SIZE = "surveillanceAreaSize"
+  val SENSOR_COMMUNICATION_RADIUS = "commRadius"
+  val SENSOR_WARNING_THRESHOLD = "warningThreshold"
+  val SENSOR_EVENT_WINDOW = "eventWindow"
+  val SENSOR_OBSTACLE_WINDOW = "obstacleWindow"
+  val SENSOR_WARNING_RETENTION_TIME = "warningRetentionTime"
+  val SENSOR_LOCAL_NUM_OF_DEVICES = "totalNumOfDevices"
+  val SENSOR_IS_COLLECTOR = "collector"
+  val SENSOR_IS_DETECTOR = "detector"
+
+  val ACTUATOR_MOVE_TO = "move_to"
+
+  val LAYER_OBSTACLE_LOCATION = "obstacle"
+  val LAYER_LOCAL_WARNING = "localWarning" // from a layer
+
+  val EXPORT_MEAN_WARNING = "meanWarning"
+  val EXPORT_IN_CHANNEL = "c"
+  val EXPORT_MEAN_WARNING_AT_COLLECTOR = "meanWarningAtCollector"
+  val EXPORT_SUM_WARNING_AT_DETECTOR = "sumWarningAtDetector"
+  val EXPORT_MEAN_WARNING_AT_DETECTOR = "meanWarningOverallAtDetector"
+  val EXPORT_NUM_DEVICES_AT_DETECTOR = "numDevicesAtDetector"
+  val EXPORT_WARNING = "warning"
+  val EXPORT_IS_OBSTACLE = "isObstacle"
+  val EXPORT_LOGS = "logs"
+  val EXPORT_SUM_WARNING_AT_COLLECTOR = "sumWarningAtCollector"
+  val EXPORT_SURVEILLANCE_AREA_GRADIENT = "surveillanceAreaGradient"
+  val EXPORT_INSIDE_SURVEILLANCE_AREA_AS_INT = "inSurveillanceArea"
+  val EXPORT_LOCAL_WARNING = "localWarningInSystem"
+  val EXPORT_LOCAL_WARNING_IN_AREA_ONLY = "localWarningInSurveillanceArea"
+  val EXPORT_SOURCE = "src"
+  val EXPORT_DESTINATION = "dest"
+  val EXPORT_INSIDE_SURVEILLANCE_AREA = "area"
+  val EXPORT_WARNING_DETECTED = "warningDetected"
+  val EXPORT_DATA_AT_COLLECTOR = "dataAtCollector"
 }
