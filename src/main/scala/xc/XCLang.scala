@@ -2,9 +2,27 @@ package xc
 
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 
+/**
+ * Interface representing XC constructs
+ */
 trait XCLang {
+  /**
+   * Abstract type for a neighbouring value of `T`s
+   */
   type NV[T]
-  def branch[T](cond: NV[Boolean])(th: => NV[T])(el: => NV[T]): NV[T]
+
+  /**
+   * This operator branches the computation into `th` or `el` according to `cond`.
+   */
+  def xcbranch[T](cond: NV[Boolean])(th: => NV[T])(el: => NV[T]): NV[T]
+
+  /**
+   * This single operator handles state and message reception/sending.
+   * @param init initial value for new devices
+   * @param f function from neighbouring value to neighbouring value
+   * @tparam T the type of neighbouring values
+   * @return the neighbouring value providing for the next local state and messages for neighbours
+   */
   def exchange[T](init: NV[T])(f: NV[T] => NV[T] /*(NV[T], NV[T])*/): NV[T]
 }
 
@@ -16,10 +34,10 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
 
   override type NV[T] = NValue[T]
 
-  override def branch[T](cond: NValue[Boolean])(th: => NValue[T])(el: => NValue[T]): NValue[T] =
+  override def xcbranch[T](cond: NValue[Boolean])(th: => NValue[T])(el: => NValue[T]): NValue[T] =
     branch(cond.toLocal)(th)(el)
 
-  def exchange[A](init: NValue[A])(f: NValue[A] => NValue[A]): NValue[A] = {
+  override def exchange[A](init: NValue[A])(f: NValue[A] => NValue[A]): NValue[A] = {
     val rvm = vm.asInstanceOf[RoundVMImpl]
     vm.nest(Scope(s"$EXCHANGE_SLOT${vm.index}"))(write = true) {
       val nbrs = vm.alignedNeighbours
@@ -39,6 +57,10 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
     }
   }
 
+  /**
+   * Another version of `exchange` with different signatures, accepting a function from "old"
+   * and "neighbouring" `NValue`s to `NValue`.
+   */
   def exchangeFull[A](init: NValue[A])(f: ExchangeParams[A] => NValue[A]): NValue[A] = {
     val rvm = vm.asInstanceOf[RoundVMImpl]
     vm.nest(Scope(s"$EXCHANGE_SLOT${vm.index}"))(write = true) {
