@@ -18,7 +18,7 @@ case class WarningReport(from: ID, sumWarning: Double, numDevices: Double, times
   def meanWarning = sumWarning / numDevices
 }
 
-class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with EdgeFields with EdgeFieldsLib {
+class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
   val SENSOR_DETECTOR_ID = "detectorId"
   val SENSOR_COLLECTOR_ID = "collectorId"
   val SENSOR_SURVEILLANCE_AREA_SIZE = "surveillanceAreaSize"

@@ -2,7 +2,7 @@ package it.unibo.casestudy
 
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 
-class Channel extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with EdgeFields with EdgeFieldsLib {
+class Channel extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
   override def main(): Any = {
     val g = gradient(mid==0, nbrRangeEF)
     node.put("g", g)
