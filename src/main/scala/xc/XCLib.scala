@@ -1,6 +1,6 @@
 package xc
 
-import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist.ID
+import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
 
 trait XCLib extends StandardSensors {
   self: XCLangImpl.XCLangSubComponent =>

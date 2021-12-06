@@ -1,6 +1,7 @@
 package xc
 
-import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist.ID
+import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
+import Builtins._
 
 trait NValues {
   self: XCLangImpl.XCLangSubComponent =>
@@ -11,7 +12,7 @@ trait NValues {
    * @param m map from devices to corresponding values
    * @tparam T type of field values
    */
-  class NValue[T](val m: Map[ID, T], override val default: T) extends Builtins.Defaultable[T] {
+  class NValue[T](val m: Map[ID, T], override val default: T) extends Defaultable[T] {
     implicit val defaultable: Defaultable[T] = this
 
     def defSubs(defaultValue: T): NValue[T] =

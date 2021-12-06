@@ -21,7 +21,7 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
 
   def exchange[A](init: NValue[A])(f: NValue[A] => NValue[A]): NValue[A] = {
     val rvm = vm.asInstanceOf[RoundVMImpl]
-    vm.nest(Scope(s"$EXCHANGE_SLOT_NAME${vm.index}"))(write = true) {
+    vm.nest(Scope(s"$EXCHANGE_SLOT${vm.index}"))(write = true) {
       val nbrs = vm.alignedNeighbours
 
       def readNeighbourValue[A](id: ID): Option[A] = rvm.context.readSlot(id, rvm.status.path)
@@ -41,7 +41,7 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
 
   def exchangeFull[A](init: NValue[A])(f: ExchangeParams[A] => NValue[A]): NValue[A] = {
     val rvm = vm.asInstanceOf[RoundVMImpl]
-    vm.nest(Scope(s"$EXCHANGE_SLOT_NAME${vm.index}"))(write = true) {
+    vm.nest(Scope(s"$EXCHANGE_SLOT${vm.index}"))(write = true) {
       val nbrs = vm.alignedNeighbours
 
       def nbrEdgeValue[A](id: ID): Option[A] = rvm.context.readSlot(id, rvm.status.path)
@@ -66,9 +66,9 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
       ExchangeParams(tuple._1, tuple._2)
   }
 
-  private val EXCHANGE_SLOT_NAME = Scope("exchange")
-  private val EXCHANGE_SLOT = Scope(EXCHANGE_SLOT_NAME)
+  private val EXCHANGE_SLOT = Scope("exchange")
 }
+
 object XCLangImpl {
   type XCLangSubComponent = XCLangImpl with NValues with FieldUtils with FieldCalculusSyntax with ExecutionTemplate
 }
