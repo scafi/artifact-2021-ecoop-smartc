@@ -1,6 +1,6 @@
-package it.unibo.casestudy
+package xc
 
-import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
+import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist.ID
 
 trait XCLib extends StandardSensors {
   self: XCLangImpl.XCLangSubComponent =>
@@ -34,7 +34,7 @@ trait XCLib extends StandardSensors {
 
   def broadcast[T](dist: Double, value: T): T = {
     val loc = (dist, value)
-    exchange[(Double,T)](loc)(n => {
+    exchange[(Double, T)](loc)(n => {
       (dist, n.withoutSelf.fold[(Double, T)](loc)((t1, t2) => if (t1._1 <= t2._1) t1 else t2)._2)
     })._2
   }
@@ -45,44 +45,48 @@ trait XCLib extends StandardSensors {
 
   def distanceTo(source: Boolean, metric: NValue[Double]): Double =
     exchange(Double.PositiveInfinity)(n =>
-      mux(source){ 0.0 } { (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min) }
+      mux(source) {
+        0.0
+      } {
+        (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min)
+      }
     )
 
   def channel(source: Boolean, dest: Boolean, width: Double): Boolean = {
     val ds = distanceTo(source, nbrRangeEF)
     val dd = distanceTo(dest, nbrRangeEF)
     val dsd = distance(source, dest)
-    if(ds==Double.PositiveInfinity || dd==Double.PositiveInfinity || dsd==Double.PositiveInfinity) false else ds + dd < dsd + width
+    if (ds == Double.PositiveInfinity || dd == Double.PositiveInfinity || dsd == Double.PositiveInfinity) false else ds + dd < dsd + width
   }
 
   /**
    * Weights corresponding to neighbours are calculated in order to penalise devices that are likely to lose
-   *   their “receiving” status, a situation that can happen in two cases:
+   * their “receiving” status, a situation that can happen in two cases:
    * (1) if the “receiving” device is too close to the edge of proximity
-   *     of the “sending” device, it might step outside of it in the immediate future breaking the connection;
+   * of the “sending” device, it might step outside of it in the immediate future breaking the connection;
    * (2) if the potential of the “receiving” device is too close to the potential of the “sending” device,
-   *     their relative role of sender/receiver might be switched in the immediate future, possibly
-   *     creating an “information loop” between the two devices.
-   *  w is positive and symmetric.
+   * their relative role of sender/receiver might be switched in the immediate future, possibly
+   * creating an “information loop” between the two devices.
+   * w is positive and symmetric.
    */
   def Cwmp(sink: Boolean, radius: Double, value: Double, Null: Double, threshold: Double = 0.1): Double = {
-    def accumulate[T : Numeric](v: NValue[T], l: T): T = /* E.g., MAX: implicitly[Builtins.Bounded[T]].max(v,l) */
+    def accumulate[T: Numeric](v: NValue[T], l: T): T = /* E.g., MAX: implicitly[Builtins.Bounded[T]].max(v,l) */
       v.foldSum(l)
 
     def extract(v: NValue[Double], w: NValue[Double], threshold: NValue[Double], Null: NValue[Double]): NValue[Double] = //if(w > threshold) v else Null
       v * w
 
     def weight(dist: Double, radius: Double): NValue[Double] = {
-      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist-v, 0))
+      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
       val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
       // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
-      res.map(v => if(v.isNaN) 0 else v)
+      res.map(v => if (v.isNaN) 0 else v)
     }
 
     def normalize(w: NValue[Double]): NValue[Double] = {
       val sum: Double = w.foldSum
       val res = w.map(_ / sum)
-      res.map(v => if(v.isNaN) 0 else v)
+      res.map(v => if (v.isNaN) 0 else v)
     }
 
     val dist = gradient(sink, nbrRangeEF)
@@ -96,7 +100,11 @@ trait XCLib extends StandardSensors {
   }
 
   def gradient(source: Boolean, metric: NValue[Double]): Double = exchange(Double.PositiveInfinity)(n =>
-    mux(source){ 0.0 } { (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min) }
+    mux(source) {
+      0.0
+    } {
+      (n + metric).withoutSelf.fold(Double.PositiveInfinity)(Math.min)
+    }
   )
 
   def nbrRangeEF: NValue[Double] = fsns(nbrRange, Double.PositiveInfinity)
@@ -108,36 +116,49 @@ trait XCLib extends StandardSensors {
    */
   def optimisedBroadcast[T](distance: Double, value: T, Null: T): T = {
     // (default is the self-key)
-    val nbrKey: NValue[(Double,ID)] = nbrLocalByExchange((distance, mid))
+    val nbrKey: NValue[(Double, ID)] = nbrLocalByExchange((distance, mid))
     // `parent` is a Boolean field that holds true for the device that chose the current device as a parent
     //   (default is the true if the self-key is equal to the min-key---this is true only for the source)
-    val parent = nbrKey.map(_ == nbrKey.fold[(Double,ID)](nbrKey)((t1,t2) => if(t1._1 < t2._1) t1 else t2))
+    val parent = nbrKey.map(_ == nbrKey.fold[(Double, ID)](nbrKey)((t1, t2) => if (t1._1 < t2._1) t1 else t2))
     exchange(value)(n => {
-      val _loc = n.map2(nbrLocalByExchange(distance)){ case (v,d) => (v == Null, d, v) }
-        .fold((false, distance, value))((t1,t2) => if(!t1._1 && t2._1) t1 else if(t1._2 < t2._2) t1 else t2)
+      val _loc = n.map2(nbrLocalByExchange(distance)) { case (v, d) => (v == Null, d, v) }
+        .fold((false, distance, value))((t1, t2) => if (!t1._1 && t2._1) t1 else if (t1._2 < t2._2) t1 else t2)
       val loc = _loc._3
       val nbrParent = nbrByExchange(parent)
       // (default value of `res` is `Null` for every device except sources)
-      val res = selfSubs(nbrParent.map(mux(_) { loc } { Null }), loc) // defSubs(..., Null) ?
+      val res = selfSubs(nbrParent.map(mux(_) {
+        loc
+      } {
+        Null
+      }), loc) // defSubs(..., Null) ?
       // println(s"${mid} => nbrKey ${nbrKey} parent ${parent} N ${n} _loc ${_loc} nbrParent ${nbrParent} res ${res}")
       res
     })
   }
 
   def hopGradient(src: Boolean): NValue[Int] = exchange(Double.PositiveInfinity)(n =>
-    mux(src){ 0.0 } { n.withoutSelf.fold(Double.PositiveInfinity)(Math.min) + 1 }
+    mux(src) {
+      0.0
+    } {
+      n.withoutSelf.fold(Double.PositiveInfinity)(Math.min) + 1
+    }
   ).toInt
 
-  def biConnection(): NValue[Int] = exchange(0)(n => n + defSubs(1,0))
+  def biConnection(): NValue[Int] = exchange(0)(n => n + defSubs(1, 0))
 
-  def Csubj[P: Builtins.Bounded, V](sink: Boolean, value: V, acc: (V, V) => V, divide: (V,Double) => V): V = {
+  def Csubj[P: Builtins.Bounded, V](sink: Boolean, value: V, acc: (V, V) => V, divide: (V, Double) => V): V = {
     val dist: Int = hopGradient(sink)
     // Use exchange to handle communication of distances (dist) and collected values
-    exchange[(Int,V)]((dist, value))(n => {
+    exchange[(Int, V)]((dist, value))(n => {
       // The reliability of a downstream neighbor (with lower values of `dist` wrt self) is estimated by the
       //   the corresponding connection time.
       // val conn: EdgeField[Int] = mux(n.map(_._1).fold(Int.MaxValue)(Math.min) < dist){ biConnection() }{ 0 }
-      val conn: NValue[Int] = pair(n, biConnection()).map{ case (n,biconn) => mux(n._1 < dist){ biconn } { 0 } }
+      val conn: NValue[Int] = pair(n, biConnection()).map { case (n, biconn) => mux(n._1 < dist) {
+        biconn
+      } {
+        0
+      }
+      }
       // Reliability scores are normalised in `send`, obtaining percetanges
       val send: NValue[Double] = conn.map(_.toDouble / Math.max(1, conn.foldSum))
       // Let's collect the `send` scores into `recv` scores for receiving neighbours' messages
@@ -147,7 +168,7 @@ trait XCLib extends StandardSensors {
       // Finally, use `acc` to aggregate neighbours' contributions
       val collectedValue: V = weightedValues.fold(value)(acc)
       // println(s"${mid} => n = $n dist = ${n._1} conn = $conn send = $send recv = $recv weightedvals = $weightedValues collectedValue = $collectedValue")
-      pair(dist : NValue[Int], collectedValue)
+      pair(dist: NValue[Int], collectedValue)
     })._2
   }
 
@@ -160,16 +181,16 @@ trait XCLib extends StandardSensors {
                threshold: Double = 0.1
               ): T = {
     def weight(dist: Double, radius: Double): NValue[Double] = {
-      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist-v, 0))
+      val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
       val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
       // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
-      res.map(v => if(v.isNaN) 0 else v)
+      res.map(v => if (v.isNaN) 0 else v)
     }
 
     def normalize(w: NValue[Double]): NValue[Double] = {
       val sum: Double = w.foldSum
       val res = w.map(_ / sum)
-      res.map(v => if(v.isNaN) 0 else v)
+      res.map(v => if (v.isNaN) 0 else v)
     }
 
     val dist = gradient(sink, nbrRangeEF)
@@ -182,7 +203,7 @@ trait XCLib extends StandardSensors {
     })
   }
 
-  def keep[T](value: T, retentionTime: Long, iff: T => Boolean) = repByExchange((value,0L))(v => {
-    if(iff(v._1) && v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
+  def keep[T](value: T, retentionTime: Long, iff: T => Boolean) = repByExchange((value, 0L))(v => {
+    if (iff(v._1) && v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
   })._1
 }

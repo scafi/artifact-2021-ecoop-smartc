@@ -1,6 +1,7 @@
-package it.unibo.casestudy
+package xc.casestudy
 
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
+import xc.{XCLangImpl, XCLib}
 
 class Channel extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
   override def main(): Any = {

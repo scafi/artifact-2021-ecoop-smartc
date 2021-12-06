@@ -1,9 +1,9 @@
-package it.unibo.casestudy
+package xc
 
-import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
-import Builtins.{Bounded, Defaultable}
+import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist.ID
 
-trait NValues { self: XCLangImpl.XCLangSubComponent =>
+trait NValues {
+  self: XCLangImpl.XCLangSubComponent =>
 
   /**
    * Basic Field type
@@ -129,4 +129,5 @@ trait NValues { self: XCLangImpl.XCLangSubComponent =>
 
     def _2: NValue[B] = f.map(_._2)
   }
+
 }

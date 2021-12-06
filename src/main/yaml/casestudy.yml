@@ -94,7 +94,7 @@ pools:
       type: Event
       actions:
         - type: RunScafiProgram
-          parameters: [it.unibo.casestudy.CaseStudy, 10]
+          parameters: [xc.casestudy.CaseStudy, 10]
     - program: send
   - pool: &move
       - time-distribution:

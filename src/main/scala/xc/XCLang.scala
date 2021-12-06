@@ -1,8 +1,6 @@
-package it.unibo.casestudy
+package xc
 
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
-import Builtins.Defaultable
-import Builtins.Bounded
 
 trait XCLang {
   type NV[T]
@@ -15,7 +13,6 @@ trait XCLang {
  */
 trait XCLangImpl extends XCLang with NValues with FieldUtils {
     self: FieldCalculusSyntax with ExecutionTemplate =>
-  import NValue._
 
   override type NV[T] = NValue[T]
 

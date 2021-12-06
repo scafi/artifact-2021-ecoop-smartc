@@ -1,4 +1,4 @@
-package it.unibo.casestudy
+package xc.casestudy
 
 import java.util.Optional
 
@@ -6,6 +6,7 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule
 import it.unibo.alchemist.model.implementations.positions.LatLongPosition
 import it.unibo.alchemist.model.interfaces.{Layer, Position}
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
+import xc.{XCLangImpl, XCLib}
 
 import scala.util.{Success, Try}
 
