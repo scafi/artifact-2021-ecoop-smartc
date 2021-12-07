@@ -45,10 +45,10 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
       def readNeighbourValue[A](id: ID): Option[A] = rvm.context.readSlot(id, rvm.status.path)
 
       val inputEdgeField = new NValue[A](
-        nbrs.map(nbrId => { // create the edgevalue by getting the contributions from all the neighbours (`nbrs`)
-          nbrId -> readNeighbourValue[NValue[A]](nbrId) // get edgevalue received from device `nbrId`
+        nbrs.map(nbrId => { // create the nvalue by getting the contributions from all the neighbours (`nbrs`)
+          nbrId -> readNeighbourValue[NValue[A]](nbrId) // get nvalue received from device `nbrId`
             .getOrElse(init).m // if there is not an aligned export from `nbrId`, use `init`
-            .getOrElse(vm.self, // from the neighbour's edgevalue, get the value sent to the current device (`self`)
+            .getOrElse(vm.self, // from the neighbour's nvalue, get the value sent to the current device (`self`)
               readNeighbourValue[NValue[A]](nbrId).getOrElse(init).default // otherwise, provide the default
             )
         }).toMap,

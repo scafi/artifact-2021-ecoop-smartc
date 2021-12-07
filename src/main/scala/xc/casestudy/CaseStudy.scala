@@ -6,13 +6,19 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule
 import it.unibo.alchemist.model.implementations.positions.LatLongPosition
 import it.unibo.alchemist.model.interfaces.{Layer, Position}
 import it.unibo.alchemist.model.scafi.ScafiIncarnationForAlchemist._
-import xc.{XCLangImpl, XCLib}
+import xc._
 
 import scala.util.{Success, Try}
 
-class CaseStudy extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
+/**
+ * This is the XC program played by all the nodes of the system.
+ * It is executed "repeatedly" in asynchronous rounds.
+ * In each round, the most up-to-date information from sensors and neighbours is used.
+ * Method `main` defines the main expression (i.e. the entry point of the program).
+ * The program logic is intertwined with simulation-specific code for extracting parameters and exporting data.
+ */
+class CaseStudy extends XCProgram with XCLib {
   import CaseStudy._
-
 
   override def main(): Any = {
     cleanState
