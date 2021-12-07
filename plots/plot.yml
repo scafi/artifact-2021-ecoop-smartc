@@ -17,7 +17,7 @@ the_plots_labels:
   - 'sum warning at collector' # sumWarningAtCollector
 the_plots_formats:
   - [0,9,14]
-  - [0,10,15]
+#  - [0,10,15]
 #  - [0,1,2,3,4,7,8,6,9,10]
 #y_labels: ['# of requests', '# of requests','','% of utilization of workers']
 #file_suffixes:
@@ -60,7 +60,7 @@ export_legend:
 hlines:
   #0: [[10, { linestyle: '--' }]]
 vlines:
-#  0: [[30, { linestyle: ':' , color: 'gray'}],[400, { linestyle: ':' , color: 'gray'}]]
+  0: [[120, { linestyle: ':' , color: 'gray'}]]
 #  1: [[30, { linestyle: ':' , color: 'red'}]]
 sampling:
   0: true
