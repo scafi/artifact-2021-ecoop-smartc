@@ -20,9 +20,15 @@ import scala.util.{Success, Try}
 class CaseStudy extends XCProgram with XCLib {
   import CaseStudy._
 
+  /**
+   * Entry point of the program. This is the XC program played "in a loop" by all the devices in the system.
+   */
   override def main(): Any = {
+    // ************** Preparation ***************
+    // Simulation-specific code: cleaning exports
     cleanState
 
+    // Simulation-specific code: getting inputs, parameters, etc.
     lazy val totalNumOfDevices = sense[Double](SENSOR_LOCAL_NUM_OF_DEVICES).toInt
     def isDetector: Boolean = sense[Boolean](SENSOR_IS_DETECTOR) //mid == sense[ID](SENSOR_DETECTOR_ID)
     def isCollector: Boolean = sense[Boolean](SENSOR_IS_COLLECTOR) /*{
@@ -53,10 +59,15 @@ class CaseStudy extends XCProgram with XCLib {
     lazy val warningRetentionTime = sense[Int](SENSOR_WARNING_RETENTION_TIME)
     val channelWidth = PARAMETER_CHANNEL_WIDTH
 
+    // ************** Program logic ***************
+    // Build a gradient of distances from the detector, used to define an "area" to be monitored
     val surveillanceArea = gradient(isDetector, nbrRangeEF)
+    // The nodes belonging to the area are those for which the gradient is up to a threshold
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
+    // Define a different logic of warning collection for nodes inside and outside the surveillance area
     val (sumWarning, numDevices): (Double, Double) = xcbranch(inSurveillanceArea){
-      val (sumWarning, numDevices) = collect[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 0.0),
+      // Collect into the detector the sum of warning and the number of devices in the area
+      val (sumWarning, numDevices) = collect[(Double,Double)](isDetector, communicationRadius, (localWarning, 1.0), (0.0, 1.0),
         accumulate = (v, l) => (v._1.foldSum(l._1), v._2.foldSum(l._2)),
         extract = (v, w, th, Null) => pair(v._1 * w, v._2 * w)
       )
@@ -67,23 +78,34 @@ class CaseStudy extends XCProgram with XCLib {
     } {
       node.put(EXPORT_SUM_WARNING_AT_DETECTOR, 0)
       node.put(EXPORT_NUM_DEVICES_AT_DETECTOR, 0)
-      (0.0, 0.0)
+      (0.0, 1.0)
     }
+    // The mean warning can be computed by just dividing the sum of warning by the number of devices
     val meanWarning = sumWarning / numDevices
+    // There is a "warning situation" if the mean warning exceeds a given threshold
     val warningDetected = meanWarning > warningThreshold
+    // Define a different logic of logs collection for nodes inside and outside the surveillance area
     val logs: Set[Logs] = xcbranch(inSurveillanceArea) {
+      // Diffuse the warning situation from the detector to all the devices in its area
       val warning: Boolean = broadcast(surveillanceArea, keep(warningDetected, warningRetentionTime, (_: Boolean) == true))
       node.put(EXPORT_WARNING, warning)
+      // Only the nodes that perceive the warning situation are involved in the process collecting logs towards the detector
+      // Only the nodes for which the local warning is greater than 0 expose their logs.
       xcbranch(warning) {
+        // Logs are accumulated by set union (where each log is identified by the ID of its source)
         collect[Set[Logs]](isDetector, communicationRadius, if (localWarning > 0) Set(Logs(mid)("", timestamp())) else Set.empty, Set.empty,
           accumulate = (ef, t) => t ++ ef.fold(Set.empty)(_++_), extract = (v, w, th, Null) => v)
       }{ Set.empty[Logs] }
     } { node.put(EXPORT_WARNING, false); Set.empty[Logs] }
 
+
     val dataToBeReported = WarningReport(mid, sumWarning, numDevices, timestamp(), logs)
+    // A channel is built, avoiding obstacles (failed devices), from the detector to the collector (operations centre)
     val reportingChannel = xcbranch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
+    // A broadcast is performed within the reporting channel, using the data at the source of the surveillanceArea gradient (i.e., from the detector)
     val reportingData: Option[WarningReport] = xcbranch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty[WarningReport] }
 
+    // *************** Export of data for simulation results gathering + actuation (random movement) **************
     node.put(EXPORT_IS_OBSTACLE, isObstacle)
     node.put(EXPORT_LOGS, logs)
     node.put(EXPORT_MEAN_WARNING, meanWarning)
