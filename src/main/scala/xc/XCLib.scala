@@ -257,9 +257,15 @@ trait XCLib extends StandardSensors {
     if (iff(v._1) && v._2 <= retentionTime) (v._1, v._2 + 1) else (value, 0L)
   })._1
 
+  /**
+   * Substitution of the default
+   */
   def defSubs[T](ef: NValue[T], defaultValue: T): NValue[T] =
     NValue(vm.alignedNeighbours().map(id => id -> ef.m.getOrElse(id, ef.default)).toMap, defaultValue)
 
+  /**
+   * Substitution of the value for "self"
+   */
   def selfSubs[T](ef: NValue[T], selfValue: T): NValue[T] =
     NValue(ef.m ++ Map[ID, T](mid -> selfValue), ef.default)
 }

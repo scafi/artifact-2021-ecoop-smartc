@@ -18,6 +18,7 @@ trait NValues {
 
   /**
    * Data type capturing neighbouring values, i.e., values modelling data received from or to be sent to neighbours.
+   * This class defines a set of build-in methods for manipulating `NValue`s.
    *
    * @param m map from devices to corresponding values
    * @param default default value for neighbours for which no value is present in `m`
@@ -39,9 +40,9 @@ trait NValues {
 
     def flatMap[R](f: T => NValue[R]): NValue[R] =
       NValue(this.m.map { case (id, v) => id -> {
-        val newEdgeField = f(v)
-        newEdgeField.m.getOrElse(id, newEdgeField.default)
-      }
+          val newEdgeField = f(v)
+          newEdgeField.m.getOrElse(id, newEdgeField.default)
+        }
       }, f(this.default))
 
     def mapWithId[R](o: (Option[ID], T) => R): NValue[R] =

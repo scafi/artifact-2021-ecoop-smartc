@@ -34,9 +34,15 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
 
   override type NV[T] = NValue[T]
 
+  /**
+   * @inheritdoc
+   */
   override def xcbranch[T](cond: NValue[Boolean])(th: => NValue[T])(el: => NValue[T]): NValue[T] =
     branch(cond.toLocal)(th)(el)
 
+  /**
+   * @inheritdoc
+   */
   override def exchange[A](init: NValue[A])(f: NValue[A] => NValue[A]): NValue[A] = {
     val rvm = vm.asInstanceOf[RoundVMImpl]
     vm.nest(Scope(s"$EXCHANGE_SLOT${vm.index}"))(write = true) {
@@ -94,6 +100,9 @@ trait XCLangImpl extends XCLang with NValues with FieldUtils {
   private val EXCHANGE_SLOT = Scope("exchange")
 }
 
+/**
+ * Companion object. It defines a type which is instrumental for splitting the content of this "family" trait.
+ */
 object XCLangImpl {
   type XCLangSubComponent = XCLangImpl with NValues with FieldUtils with FieldCalculusSyntax with ExecutionTemplate
 }
