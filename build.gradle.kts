@@ -141,7 +141,7 @@ fun makeTest(
                 "-y", "src/main/yaml/${file}.yml",
                 "-g", "src/main/resources/${effects}.aes",
                 "-t", "$time",
-                "-e", "data/${today}-${name}",
+                "-e", "data/${name}", // ${today}-${name}",
                 "-p", threadCount,
                 "-i", "$sampling"
         )
