@@ -101,7 +101,7 @@ class CaseStudy extends XCProgram with XCLib {
 
     val dataToBeReported = WarningReport(mid, sumWarning, numDevices, timestamp(), logs)
     // A channel is built, avoiding obstacles (failed devices), from the detector to the collector (operations centre)
-    val reportingChannel = xcbranch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
+    val reportingChannel: Boolean = xcbranch(!isObstacle){ channel(isDetector, isCollector, channelWidth) } { false }
     // A broadcast is performed within the reporting channel, using the data at the source of the surveillanceArea gradient (i.e., from the detector)
     val reportingData: Option[WarningReport] = xcbranch(reportingChannel){ Option(broadcast(surveillanceArea, dataToBeReported)) }{ Option.empty[WarningReport] }
 
