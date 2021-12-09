@@ -1,0 +1,30 @@
+# Launch simulations using the appropriate Gradle task
+$ ./gradlew tuples
+# Plot them
+$ ./plotter.py plots/plot.yml data-f16c/ casestudy.* casestudy data-f16c/imgs
+# Put together the images for a better visualisation
+$ ./showImgs.sh data/imgs/ tuples_0_0 3 summary
+
+# Prepare data files
+# Strip date in filenames
+rename 's/([0-9]+)-(.*)/$2/' data-b8c7/*
+# Check diff
+diff -y -w -I "\#.*" --suppress-common-lines data-39f8/ data-7261/ | head
+colordiff --left-column -y -w -I "\#.*" --suppress-common-lines results/data-casestudy-f16c/ data-7261/
+
+# Running simulations in K8S cluster
+# 0. Prepare your simulation configuration and gradle tasks
+# 1. Build docker container image and push image to remote repo (so that the cluster will be able to download it)
+$ docker build -t metaphori/xc:v0 . && docker push metaphori/xc:v0
+# 2. Launch tasks on k8s cluster, e.g., 'moving' and 'moreins'
+$ ./kube-launch-task.sh xc metaphori/xc:v0 "./gradlew casestudy" . 30d
+# 3. Monitor tasks, e.g.
+$ kubectl exec tpl-moving -- ls -l /tuples/data/
+# 4. When done, retrieve data
+$ kubectl cp tpl-moving:/tuples/data/ data/ # i.e., pod:remote/path local/path
+
+
+# RUNNING on iris
+ssh iris.apice.unibo.it
+# do job, then exit and
+scp -r iris.apice.unibo.it:/home/roby/... local/outdir
