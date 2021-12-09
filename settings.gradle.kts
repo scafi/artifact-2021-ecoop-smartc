@@ -1,1 +1,1 @@
-rootProject.name = "experiment21-scafi-scp"
+rootProject.name = "experiment21-xc"
