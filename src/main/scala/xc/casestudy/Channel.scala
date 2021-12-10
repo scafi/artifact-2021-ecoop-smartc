@@ -5,7 +5,7 @@ import xc.{XCLangImpl, XCLib}
 
 class Channel extends AggregateProgram with StandardSensors with ScafiAlchemistSupport with XCLangImpl with XCLib {
   override def main(): Any = {
-    val g = gradient(mid==0, nbrRangeEF)
+    val g = gradient(mid==0, senseDist)
     node.put("g", g)
     node.put("src", mid==0)
     node.put("dest", mid==100)

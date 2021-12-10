@@ -61,7 +61,7 @@ class CaseStudy extends XCProgram with XCLib {
 
     // ************** Program logic ***************
     // Build a gradient of distances from the detector, used to define an "area" to be monitored
-    val surveillanceArea = gradient(isDetector, nbrRangeEF)
+    val surveillanceArea = gradient(isDetector, senseDist)
     // The nodes belonging to the area are those for which the gradient is up to a threshold
     val inSurveillanceArea: Boolean = surveillanceArea < surveillanceAreaSize
     // Define a different logic of warning collection for nodes inside and outside the surveillance area

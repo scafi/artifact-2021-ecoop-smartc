@@ -68,7 +68,7 @@ trait XCLib extends StandardSensors {
    * @return the local view of the computed distance between `source` and `dest`
    */
   def distance(source: Boolean, dest: Boolean): Double = {
-    broadcast(distanceTo(source, nbrRangeEF), distanceTo(dest, nbrRangeEF))
+    broadcast(distanceTo(source, senseDist), distanceTo(dest, senseDist))
   }
 
   /**
@@ -80,8 +80,8 @@ trait XCLib extends StandardSensors {
    * @return a Boolean indicating whether the node belongs to the channel or not
    */
   def channel(source: Boolean, dest: Boolean, width: Double): Boolean = {
-    val ds = distanceTo(source, nbrRangeEF)
-    val dd = distanceTo(dest, nbrRangeEF)
+    val ds = distanceTo(source, senseDist)
+    val dd = distanceTo(dest, senseDist)
     val dsd = distance(source, dest)
     if (ds == Double.PositiveInfinity || dd == Double.PositiveInfinity || dsd == Double.PositiveInfinity) false else ds + dd < dsd + width
   }
@@ -97,7 +97,7 @@ trait XCLib extends StandardSensors {
                 ): T = {
     def weight(dist: Double, radius: Double): NValue[Double] = {
       val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
-      val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
+      val res = NValue.localToField(radius).map2(senseDist)(_ - _).map2(distDiff)(_ * _)
       // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
       res.map(v => if (v.isNaN) 0 else v)
     }
@@ -108,7 +108,7 @@ trait XCLib extends StandardSensors {
       res.map(v => if (v.isNaN) 0 else v)
     }
 
-    val dist = gradient(sink, nbrRangeEF)
+    val dist = gradient(sink, senseDist)
     exchange(value)(n => {
       val loc: T = accumulate(n.withoutSelf, value) // or also: accumulate(selfSubs(n, 0.0),value)
       val w: NValue[Double] = weight(dist, radius)
@@ -150,7 +150,7 @@ trait XCLib extends StandardSensors {
   /**
    * The neighbouring sensor providing distances to neighbours, as a function providing an `NValue`
    */
-  def nbrRangeEF: NValue[Double] = fsns(nbrRange, Double.PositiveInfinity)
+  def senseDist: NValue[Double] = fsns(nbrRange, Double.PositiveInfinity)
 
   /**
    * Weights corresponding to neighbours are calculated in order to penalise devices that are likely to lose
@@ -171,7 +171,7 @@ trait XCLib extends StandardSensors {
 
     def weight(dist: Double, radius: Double): NValue[Double] = {
       val distDiff: NValue[Double] = nbrLocalByExchange(dist).map(v => Math.max(dist - v, 0))
-      val res = NValue.localToField(radius).map2(nbrRangeEF)(_ - _).map2(distDiff)(_ * _)
+      val res = NValue.localToField(radius).map2(senseDist)(_ - _).map2(distDiff)(_ * _)
       // NB: NaN values may arise when `dist`s are Double.PositiveInfinity (e.g., inf - inf = NaN)
       res.map(v => if (v.isNaN) 0 else v)
     }
@@ -182,7 +182,7 @@ trait XCLib extends StandardSensors {
       res.map(v => if (v.isNaN) 0 else v)
     }
 
-    val dist = gradient(sink, nbrRangeEF)
+    val dist = gradient(sink, senseDist)
     exchange(value)(n => {
       val loc: Double = accumulate(n.withoutSelf, value) // or also: accumulate(selfSubs(n, 0.0),value)
       val w: NValue[Double] = weight(dist, radius)
