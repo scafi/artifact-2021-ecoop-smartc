@@ -113,14 +113,14 @@ fun makeTest(
                     }
                     output.toString().trim().toLong() / 1024
                 }
-                .also { println("Detected ${it}MB RAM available.") }  * 9 / 10
+                .also { println("${name} >> Detected ${it}MB RAM available.") }  * 9 / 10
     } else {
         // Guess 10GB RAM of which 2 used by the OS
         10 * 1024L
     }
 
     val threadCount = threads ?: maxOf(1, minOf(Runtime.getRuntime().availableProcessors(), heap.toInt() / taskSize ))
-    println("Running on $threadCount threads")
+    println("${name} has size ${taskSize} and would run on $threadCount threads")
 
     val today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
