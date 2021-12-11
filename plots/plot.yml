@@ -60,18 +60,14 @@ export_legend:
 hlines:
   #0: [[10, { linestyle: '--' }]]
 vlines:
-  0: [[120, { linestyle: ':' , color: 'gray'}]]
+  - [[120, { linestyle: ':' , color: 'gray'}]]
 #  1: [[30, { linestyle: ':' , color: 'red'}]]
 sampling:
-  0: true
-  1: true
-  2: true
-  3: true
-  4: true
+  - true
 format: 'pdf'
 #title_prefix: ''
 excluded_titles:
 #  0: [0] # [1]
 lines_styles:
 above_max_y:
-  0: 0.3
+  - 0.3
