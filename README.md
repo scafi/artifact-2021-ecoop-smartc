@@ -2,6 +2,11 @@
 
 This repository contains the DSL and case study of the paper "Functional programming for distributed systems with XC" accepted at ECOOP'22.
 
+Related repositories:
+
+- [ScaFi repository](https://github.com/scafi/scafi)
+- [XC/Scala DSL](https://github.com/scafi/artifact-2021-ecoop-xc)
+
 ## XC/Scala: an XC implementation as an internal Scala domain-specific language (DSL)
 
 XC is a language for building adaptive and self-organizing collective behaviours in homogeneous distributed systems.
