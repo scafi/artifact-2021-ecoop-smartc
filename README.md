@@ -5,6 +5,7 @@ This repository contains the DSL and case study of the paper "Functional program
 ## XC/Scala: an XC implementation as an internal Scala domain-specific language (DSL)
 
 XC is a language for building adaptive and self-organizing collective behaviours in homogeneous distributed systems.
+The XC/Scala DSL implementation builds on the [ScaFi aggregate programming language](https://scafi.github.io).
 
 - The source code of the implementation can be found under `src/main/scala`, package `xc`
 - The DSL implementation includes the components described in the paper, namely:
@@ -15,7 +16,7 @@ XC is a language for building adaptive and self-organizing collective behaviours
 
 ## Case study: SmartC
 
-The case study `SmartC` consists of a network of devices in a smart city executing a self-organizing behaviour .
+The case study `SmartC` consists of a network of devices in a smart city executing a self-organizing behaviour for warning detection. The simulation leverages the [Alchemist simulator](https://alchemistsimulator.github.io/)
 
 - XC/Scala program run by all the devices in the simulation: `src/main/scala/xc/casestudy/CaseStudy.scala`
 - YAML descriptor of the simulation (for the Alchemist simulator): `src/main/yaml/casestudy.yml`
