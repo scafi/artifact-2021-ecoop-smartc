@@ -52,3 +52,11 @@ Please follow these steps to reproduce **Figure 11** (a note: current Figure 11 
     `colordiff -s --left-column -y -w -I "\#.*" --suppress-common-lines data/ results/data-casestudy-f16c/`
 4. (Optional) You can also plot the data using the following:
     `python3 ./plotter.py plots/plot.yml results/data-casestudy-f16c/ casestudy.* casestudy results/data-casestudy-f16c/imgs`
+
+## License
+
+See the LICENSE file.
+    
+## Contacts
+    
+[Roberto Casadei](https://robertocasadei.github.io/)
